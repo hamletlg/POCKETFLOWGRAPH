@@ -1,0 +1,35 @@
+{
+    "nodes": [
+        {
+            "id": "1",
+            "type": "start",
+            "label": "Start Flow",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {}
+        },
+        {
+            "id": "2",
+            "type": "llm",
+            "label": "My LLM",
+            "position": {
+                "x": 100,
+                "y": 0
+            },
+            "data": {
+                "api_base": "http://127.0.0.1:1234/v1",
+                "model": "local-model",
+                "system_prompt": "You are a test.",
+                "user_prompt": "Hello test"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "source": "1",
+            "target": "2"
+        }
+    ]
+}

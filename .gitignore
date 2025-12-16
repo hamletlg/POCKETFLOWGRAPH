@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# NodeJS
+node_modules/
+dist/
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# PocketFlow specific
+backend/workflows/*.json 
+# Wait, maybe user wants to commit workflows? 
+# The user said "save the work till now". 
+# Usually user data isn't committed, but initial demo workflows might be useful.
+# I'll keep workflows in for now, or maybe ignore them? 
+# Let's ignore generated user data but maybe keep example ones if they exist. 
+# For now, I will NOT ignore backend/workflows, assuming they are part of the 'work'.
+# But typically db/storage is ignored.
+# I'll stick to standard ignores.
+
+# Logs
+*.log
