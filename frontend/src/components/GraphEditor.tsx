@@ -129,7 +129,7 @@ export const GraphEditor: React.FC<GraphEditorProps> = (props) => {
 // Moving Content content here to allow hooks
 const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [nodes, setNodes, onNodesChangeFromHook] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
     const [executionStatus, setExecutionStatus] = useState<string | null>(null);
@@ -138,6 +138,73 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const [isDirty, setIsDirty] = useState(false);
 
     const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+
+    // State for Execution Visualization
+    const [executingNodes, setExecutingNodes] = useState<Set<string>>(new Set());
+
+    // WebSocket Connection
+    useEffect(() => {
+        const ws = new WebSocket('ws://localhost:8000/api/ws');
+
+        ws.onopen = () => {
+            console.log("Connected to WebSocket");
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'node_start') {
+                    setExecutingNodes(prev => new Set(prev).add(msg.payload.node_id));
+                } else if (msg.type === 'node_end' || msg.type === 'node_error') {
+                    setExecutingNodes(prev => {
+                        const next = new Set(prev);
+                        next.delete(msg.payload.node_id);
+                        return next;
+                    });
+                } else if (msg.type === 'workflow_end') {
+                    // Clear all
+                    setExecutingNodes(new Set());
+                    alert("Workflow Execution Completed!");
+                } else if (msg.type === 'workflow_error') {
+                    setExecutingNodes(new Set());
+                    alert("Workflow Error: " + msg.payload);
+                }
+            } catch (e) {
+                console.error("WS Error", e);
+            }
+        };
+
+        return () => {
+            ws.close();
+        };
+    }, []);
+
+    // Update nodes styling based on execution
+    useEffect(() => {
+        setNodes((nds) =>
+            nds.map((node) => {
+                const isExecuting = executingNodes.has(node.id);
+                return {
+                    ...node,
+                    style: {
+                        ...node.style,
+                        border: isExecuting ? '2px solid #3b82f6' : '1px solid #777',
+                        boxShadow: isExecuting ? '0 0 10px #3b82f6' : 'none',
+                        transition: 'all 0.3s ease'
+                    },
+                };
+            })
+        );
+    }, [executingNodes, setNodes]);
+
+
+    const onNodesChange = useCallback(
+        (changes: NodeChange[]) => {
+            setIsDirty(true);
+            onNodesChangeFromHook(changes); // Call the original handler
+        },
+        [onNodesChangeFromHook]
+    );
 
     const onConnect = useCallback(
         (params: Connection) => {

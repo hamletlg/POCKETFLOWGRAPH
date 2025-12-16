@@ -23,6 +23,9 @@ workflows_dir = "backend/workflows"
 os.makedirs(workflows_dir, exist_ok=True)
 scheduler = SchedulerService(workflows_dir)
 
+# WS Manager
+from .websockets import manager
+
 @app.on_event("startup")
 async def startup_event():
     scheduler.start()
@@ -30,6 +33,39 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     scheduler.stop()
+
+# Helper for Thread-Safe Broadcast
+def broadcast_sync(event_type: str, data: dict):
+    # data["type"] = event_type
+    message = json.dumps({"type": event_type, "data": data})
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+        
+    if loop and loop.is_running():
+         # If we are in the loop? No, nodes run in thread.
+         # But the call comes from a thread, so get_running_loop() might fail or return nothing?
+         # Actually uvicorn runs in a main loop.
+         # So we need access to THAT loop.
+         # We can save it on startup.
+         pass
+         
+# Better approach: store loop globally
+loop_instance = None
+@app.on_event("startup")
+async def set_loop():
+    global loop_instance
+    loop_instance = asyncio.get_running_loop()
+
+def event_callback(event, payload):
+    print(f"EVENT_CALLBACK: {event} - {payload} - loop_instance={loop_instance}")
+    if loop_instance:
+        message = json.dumps({"type": event, "payload": payload})
+        print(f"Broadcasting: {message}")
+        asyncio.run_coroutine_threadsafe(manager.broadcast(message), loop_instance)
+    else:
+        print("WARNING: loop_instance is None, cannot broadcast events")
 
 # CORS
 app.add_middleware(
@@ -58,8 +94,17 @@ def get_nodes():
 async def run_workflow_endpoint(workflow: Workflow):
     from .engine import run_workflow
     try:
-        return await run_workflow(workflow)
+        # Broadcast Start
+        await manager.broadcast(json.dumps({"type": "workflow_start", "payload": {"name": "manual_run"}}))
+        
+        result = await run_workflow(workflow, event_callback)
+        
+        # Broadcast End
+        await manager.broadcast(json.dumps({"type": "workflow_end", "payload": result}))
+        
+        return result
     except Exception as e:
+         await manager.broadcast(json.dumps({"type": "workflow_error", "payload": str(e)}))
          raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/export")
@@ -126,17 +171,35 @@ def delete_workflow(name: str):
 
     return {"status": "deleted", "name": name}
 
-@app.websocket("/api/ws/{job_id}")
-async def websocket_endpoint(websocket: WebSocket, job_id: str):
-    await websocket.accept()
-    await websocket.send_text(f"Connected to job {job_id}")
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
     try:
         while True:
-            # Simulate logs
-            await asyncio.sleep(1)
-            await websocket.send_text(f"Job {job_id}: Processing...")
+            # Keep alive / listen
+            await websocket.receive_text()
     except Exception:
-        print("WS Disconnected")
+        manager.disconnect(websocket)
+
+
+# Log Buffer
+log_buffer = []
+
+class ListHandler(logging.Handler):
+    def emit(self, record):
+        log_buffer.append(self.format(record))
+        if len(log_buffer) > 100:
+            log_buffer.pop(0)
+
+handler = ListHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logging.getLogger().addHandler(handler)
+logger.addHandler(handler)
+
+@app.get("/api/logs")
+def get_logs():
+    return log_buffer
 
 if __name__ == "__main__":
     uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)

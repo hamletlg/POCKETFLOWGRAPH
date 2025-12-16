@@ -80,9 +80,9 @@ class LLMNode(BasePlatformNode, Node):
             
         print(f"DEBUG LLMNode: final_content='{user_content}'")
         
-        client = openai.OpenAI(base_url=self.api_base, api_key=self.api_key)
-        
         try:
+            client = openai.OpenAI(base_url=self.api_base, api_key=self.api_key)
+            
             messages = [
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": user_content}
