@@ -16,10 +16,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
     // Category Definitions
     const categories: Record<string, string[]> = {
         "General": ["start", "debug"],
+        "Control Flow": ["if_else", "switch", "loop", "while_loop", "merge", "try_catch", "delay"],
         "AI": ["llm"],
         "Web": ["web_search", "web_fetch", "rss_read"],
         "Data": ["memory", "sqlite"],
-        "Input/Output": ["file_read", "file_write"],
+        "Input/Output": ["file_read", "file_write", "pdf_read"],
         "Scheduling": ["cron"]
     };
 
@@ -42,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
     }, {} as Record<string, NodeMetadata[]>);
 
     // Order categories
-    const orderedCategories = ["General", "Scheduling", "AI", "Web", "Data", "Input/Output", "Other"];
+    const orderedCategories = ["General", "Control Flow", "Scheduling", "AI", "Web", "Data", "Input/Output", "Other"];
 
     return (
         <aside className="bg-gray-50 border-r border-gray-200 p-4 h-full overflow-y-auto flex flex-col w-full">

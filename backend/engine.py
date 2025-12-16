@@ -33,7 +33,18 @@ def build_graph(workflow: Workflow, event_callback=None):
         target_node = pf_nodes.get(edge.target)
         
         if source_node and target_node:
-            source_node >> target_node
+            # Extract edge name from sourceHandle (format: "out-{edge_name}")
+            edge_name = "default"
+            if edge.sourceHandle and edge.sourceHandle.startswith("out-"):
+                edge_name = edge.sourceHandle[4:]  # Remove "out-" prefix
+            
+            if edge_name == "default":
+                source_node >> target_node
+            else:
+                # Use named transition: source_node - "edge_name" >> target_node
+                (source_node - edge_name) >> target_node
+            
+            print(f"DEBUG: Connected {edge.source} --[{edge_name}]--> {edge.target}")
             
     # Find roots
     in_degree = {uid: 0 for uid in pf_nodes}

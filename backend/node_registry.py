@@ -5,10 +5,11 @@ from typing import Dict, Type
 from .nodes.base import BasePlatformNode, NodeSchema, DebugNode
 from .nodes.llm import LLMNode
 from .nodes.general import StartNode
-from .nodes.io import FileReadNode, FileWriteNode
+from .nodes.io import FileReadNode, FileWriteNode, PDFReadNode
 from .nodes.web import WebSearchNode, WebFetchNode, RSSNode
 from .nodes.data import MemoryNode, SQLiteNode
 from .nodes.scheduling import CronNode
+from .nodes.control_flow import IfElseNode, SwitchNode, LoopNode, WhileNode, MergeNode, TryCatchNode, DelayNode
 
 class NodeRegistry:
     def __init__(self):
@@ -21,11 +22,20 @@ class NodeRegistry:
         self.register(DebugNode)
         self.register(FileReadNode)
         self.register(FileWriteNode)
+        self.register(PDFReadNode)
         self.register(WebSearchNode)
         self.register(WebFetchNode)
         self.register(RSSNode)
         self.register(MemoryNode)
         self.register(SQLiteNode)
+        # Control Flow Nodes
+        self.register(IfElseNode)
+        self.register(SwitchNode)
+        self.register(LoopNode)
+        self.register(WhileNode)
+        self.register(MergeNode)
+        self.register(TryCatchNode)
+        self.register(DelayNode)
 
     def register(self, cls):
         if hasattr(cls, "NODE_TYPE"):
