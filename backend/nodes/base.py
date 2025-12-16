@@ -89,13 +89,34 @@ class BasePlatformNode:
 # Example wrapper
 class DebugNode(Node, BasePlatformNode):
     NODE_TYPE = "debug"
-    DESCRIPTION = "Prinst input to console"
-    PARAMS = {"prefix": "string"}
+    DESCRIPTION = "Print input to console"
+    PARAMS = {"prefix": "string", "show_shared": "boolean"}
     
     def prep(self, shared):
-        prefix = self.params.get("prefix", "DEBUG: ")
-        return prefix
+        cfg = getattr(self, 'config', {})
+        prefix = cfg.get("prefix", "DEBUG")
+        show_shared = cfg.get("show_shared", False)
+        
+        # Get input from previous node
+        results = shared.get("results", {})
+        last_result = None
+        if results:
+            last_key = list(results.keys())[-1]
+            last_result = results[last_key]
+        
+        return {
+            "prefix": prefix,
+            "input": last_result,
+            "shared": shared if show_shared else None
+        }
 
     def exec(self, prep_res):
-        print(f"{prep_res} {self.params}")
-        return self.params
+        prefix = prep_res.get("prefix", "DEBUG")
+        input_val = prep_res.get("input")
+        shared = prep_res.get("shared")
+        
+        print(f"[{prefix}] Input: {input_val}")
+        if shared:
+            print(f"[{prefix}] Memory: {shared.get('memory', {})}")
+        
+        return input_val  # Pass through the input

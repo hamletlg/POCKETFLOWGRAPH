@@ -2,42 +2,39 @@ from .base import BasePlatformNode
 from pocketflow import Node
 import openai
 import os
+import json
+
 
 class LLMNode(BasePlatformNode, Node):
+    """
+    Generate text using a local LLM (OpenAI compatible).
+    
+    Features:
+    - Variable injection: Use {input}, {memory_key} in prompts
+    - Persistent memory: Reads from both session and file-based memory
+    - Chat history: Optional conversation tracking with configurable max turns
+    """
     NODE_TYPE = "llm"
     DESCRIPTION = "Generate text using a local LLM (OpenAI compatible)"
     PARAMS = {
-        "api_base": "string", # e.g. http://localhost:1234/v1
-        "api_key": "string",  # usually 'lm-studio' or similar
-        "model": "string",    # e.g. "llama-3.2"
+        "api_base": "string",       # e.g. http://localhost:1234/v1
+        "api_key": "string",        # usually 'lm-studio' or similar
+        "model": "string",          # e.g. "llama-3.2"
         "system_prompt": "string",
-        "user_prompt": "string", # can use {input} to inject previous node output
-        "temperature": "float"
+        "user_prompt": "string",    # can use {input}, {memory_key}
+        "temperature": "float",
+        "use_history": "boolean",   # Enable chat history
+        "conversation_id": "string", # Unique ID for conversation (default: "default")
+        "max_history": "int"        # Max messages to keep (default: 10)
     }
+    
+    MEMORY_FILE = ".pocketflow_memory.json"
 
     def prep(self, shared):
-        # Retrieve params from self.config (to allow PocketFlow to manage self.params)
         cfg = getattr(self, 'config', {})
         
-        # Check global override from StartNode
+        # LLM Configuration
         default_base = shared.get("llm_base_url", "http://localhost:1234/v1")
-        
-        self.api_base = cfg.get("api_base", default_base)
-        # If the user specifically set api_base in this node to something different from default, 
-        # normally cfg.get would return it.
-        # But if the user specifically Wants the global override to take precedence?
-        # Typically "Global Config" > "Default", but "Node Config" > "Global Config".
-        # However, the user said "override the predefined address".
-        # If the node has "http://localhost:1234/v1" configured (which is default in UI?), 
-        # how do we distinguish "user set this" vs "default"?
-        # For now, let's assume if it's in shared, we treat it as the new default if the node param is empty or default.
-        # However, if the user explicitly typed a different URL in the node, that should probably win.
-        # But if the user left it as default or empty, the global one wins.
-        # Let's trust the logic: cfg.get("api_base", default_base)
-        # If "api_base" is set in config (and not empty / None), it wins.
-        # If it's not set (e.g. empty string), we might want fallback?
-        # Let's enforce: if config value is empty string, use default_base.
-        
         val = cfg.get("api_base")
         self.api_base = val if val else default_base
         self.api_key = cfg.get("api_key", "lm-studio")
@@ -46,7 +43,12 @@ class LLMNode(BasePlatformNode, Node):
         self.user_prompt_template = cfg.get("user_prompt", "{input}")
         self.temperature = float(cfg.get("temperature", 0.7))
         
-        # Build Context
+        # Chat history configuration
+        self.use_history = cfg.get("use_history", False)
+        self.conversation_id = cfg.get("conversation_id", "default") or "default"
+        self.max_history = int(cfg.get("max_history", 10) or 10)
+        
+        # Build Context from multiple sources
         context = {}
         
         # 1. "input": result of the predecessor node
@@ -56,46 +58,136 @@ class LLMNode(BasePlatformNode, Node):
             context['input'] = results[last_key]
         else:
             context['input'] = ""
-            
-        # 2. Memory: add all keys from shared memory
+        
+        # 2. Session memory (in-memory)
         if "memory" in shared and isinstance(shared["memory"], dict):
             context.update(shared["memory"])
-            
-        return context
+        
+        # 3. Persistent memory (from file) - NEW
+        persistent_data = self._load_persistent()
+        for key, value in persistent_data.items():
+            if key not in context:  # Don't override session memory
+                context[key] = value
+        
+        # 4. Load chat history if enabled
+        history = []
+        if self.use_history:
+            history = self._load_history(self.conversation_id)
+        
+        return {
+            "context": context,
+            "history": history,
+            "shared": shared
+        }
 
-    def exec(self, context):
-        # Context contains 'input' and memory variables
-        # Use simple string replacement for safety and control
+    def exec(self, prep_res):
+        context = prep_res["context"]
+        history = prep_res["history"]
         
-        cfg = getattr(self, 'config', {})
-        print(f"DEBUG LLMNode: config={cfg}")
-        print(f"DEBUG LLMNode: context_keys={list(context.keys())} content={context}")
+        print(f"DEBUG LLMNode: context_keys={list(context.keys())}")
         
+        # Build user content with variable substitution
         user_content = self.user_prompt_template
-        
-        # Replace {key} with value from context
-        # We loop over context to support arbitrary keys
         for key, value in context.items():
+            # Handle complex types
+            if isinstance(value, (dict, list)):
+                value = json.dumps(value, ensure_ascii=False)
             user_content = user_content.replace(f"{{{key}}}", str(value))
-            
-        print(f"DEBUG LLMNode: final_content='{user_content}'")
+        
+        print(f"DEBUG LLMNode: final_content='{user_content[:100]}...'")
         
         try:
             client = openai.OpenAI(base_url=self.api_base, api_key=self.api_key)
             
-            messages = [
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_content}
-            ]
-            print(f"Sending request to {self.api_base} with model {self.model}")
+            # Build messages list
+            messages = [{"role": "system", "content": self.system_prompt}]
+            
+            # Add history if enabled
+            if self.use_history and history:
+                messages.extend(history)
+            
+            # Add current user message
+            messages.append({"role": "user", "content": user_content})
+            
+            print(f"Sending request to {self.api_base} with model {self.model} ({len(messages)} messages)")
+            
             response = client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=self.temperature
             )
             content = response.choices[0].message.content
-            print(f"LLMNode response: {content}")
-            return content
+            print(f"LLMNode response: {content[:100]}...")
+            
+            return {
+                "response": content,
+                "user_message": user_content,
+                "success": True
+            }
         except Exception as e:
             print(f"LLMNode Error: {e}")
-            return f"Error: {str(e)}"
+            return {
+                "response": f"Error: {str(e)}",
+                "user_message": user_content,
+                "success": False
+            }
+
+    def post(self, shared, prep_res, exec_res):
+        """Store result and update chat history if enabled."""
+        response = exec_res.get("response", "")
+        
+        # Update chat history if enabled
+        if self.use_history and exec_res.get("success"):
+            user_msg = exec_res.get("user_message", "")
+            self._save_history(
+                self.conversation_id,
+                user_msg,
+                response,
+                self.max_history
+            )
+        
+        # Store response for downstream nodes
+        super().post(shared, prep_res, response)
+        return None
+
+    def _load_persistent(self) -> dict:
+        """Load persistent memory from JSON file."""
+        if os.path.exists(self.MEMORY_FILE):
+            try:
+                with open(self.MEMORY_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError):
+                return {}
+        return {}
+
+    def _load_history(self, conversation_id: str) -> list:
+        """Load chat history for a conversation."""
+        data = self._load_persistent()
+        history_key = f"_chat_history_{conversation_id}"
+        return data.get(history_key, [])
+
+    def _save_history(self, conversation_id: str, user_msg: str, assistant_msg: str, max_history: int):
+        """Save chat history, respecting max_history limit."""
+        data = self._load_persistent()
+        history_key = f"_chat_history_{conversation_id}"
+        
+        history = data.get(history_key, [])
+        
+        # Append new messages
+        history.append({"role": "user", "content": user_msg})
+        history.append({"role": "assistant", "content": assistant_msg})
+        
+        # Trim to max_history (max_history is number of turns, so multiply by 2 for messages)
+        max_messages = max_history * 2
+        if len(history) > max_messages:
+            history = history[-max_messages:]
+        
+        data[history_key] = history
+        
+        # Save back to file
+        try:
+            with open(self.MEMORY_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+        except IOError as e:
+            print(f"Error saving chat history: {e}")
+
