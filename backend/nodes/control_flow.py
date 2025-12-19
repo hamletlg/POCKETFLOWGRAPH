@@ -13,6 +13,7 @@ Provides conditional branching and looping constructs:
 
 import json
 import time
+import os
 from .base import BasePlatformNode
 from pocketflow import Node
 
@@ -368,3 +369,140 @@ class DelayNode(BasePlatformNode, Node):
         super().post(shared, prep_res, exec_res)
         return None  # Use default edge
 
+
+class JSONDispatcherNode(BasePlatformNode, Node):
+    """Parses JSON from input and routes to outputs based on a routing key."""
+    NODE_TYPE = "json_dispatcher"
+    DESCRIPTION = "Route based on JSON key/value (e.g. action detection)"
+    INPUTS = ["default"]
+    OUTPUTS = ["action_1", "action_2", "action_3", "default"]
+    PARAMS = {
+        "routing_key": "string",     # Key to look for (default: 'action')
+        "action_1_value": "string",  # Value for output action_1
+        "action_2_value": "string",  # Value for output action_2
+        "action_3_value": "string",  # Value for output action_3
+    }
+
+    def prep(self, shared):
+        results = shared.get("results", {})
+        input_val = None
+        if results:
+            last_key = list(results.keys())[-1]
+            input_val = results[last_key]
+        
+        return {"input": input_val}
+
+    def exec(self, prep_res):
+        cfg = getattr(self, 'config', {})
+        input_val = prep_res.get("input")
+        routing_key = cfg.get("routing_key", "action")
+        
+        if not input_val:
+            return "default"
+        
+        data = {}
+        if isinstance(input_val, dict):
+            data = input_val
+        elif isinstance(input_val, str):
+            try:
+                # Clean markdown code blocks if present
+                clean_input = input_val.strip()
+                if clean_input.startswith("```json"):
+                    clean_input = clean_input[7:-3].strip()
+                elif clean_input.startswith("```"):
+                    clean_input = clean_input[3:-3].strip()
+                
+                data = json.loads(clean_input)
+            except:
+                print(f"JSONDispatcherNode: Failed to parse JSON from string: {input_val[:100]}...")
+                return "default"
+        
+        if not isinstance(data, dict):
+            return "default"
+            
+        value = str(data.get(routing_key, "")).strip()
+        
+        for i in range(1, 4):
+            case_val = str(cfg.get(f"action_{i}_value", "")).strip()
+            if case_val and value == case_val:
+                return f"action_{i}"
+        
+        return "default"
+
+    def post(self, shared, prep_res, exec_res):
+        super().post(shared, prep_res, exec_res)
+        return exec_res
+
+class SubWorkflowNode(BasePlatformNode, Node):
+    """Executes another saved workflow as a sub-task."""
+    NODE_TYPE = "sub_workflow"
+    DESCRIPTION = "Execute another saved workflow"
+    INPUTS = ["default"]
+    OUTPUTS = ["default"]
+    PARAMS = {
+        "workflow_name": "string",
+        "pass_memory": "boolean"  # Pass shared['memory'] to sub-workflow
+    }
+
+    def prep(self, shared):
+        cfg = getattr(self, 'config', {})
+        return {
+            "workflow_name": cfg.get("workflow_name", ""),
+            "pass_memory": cfg.get("pass_memory", True),
+            "shared": shared
+        }
+
+    def exec(self, prep_res):
+        workflow_name = prep_res.get("workflow_name")
+        pass_memory = prep_res.get("pass_memory")
+        shared = prep_res.get("shared")
+        
+        if not workflow_name:
+            return "Error: No workflow name provided"
+            
+        # Try to find the workflow file
+        file_path = f"backend/workflows/{workflow_name}.json"
+        if not os.path.exists(file_path):
+            return f"Error: Workflow '{workflow_name}' not found at {file_path}"
+            
+        try:
+            with open(file_path, "r") as f:
+                wf_data = json.load(f)
+            
+            # Import engine components here to avoid circular imports
+            from ..engine import build_graph
+            from ..schemas import Workflow
+            
+            workflow_obj = Workflow(**wf_data)
+            # Use same on_event for the subflow so events show up in UI
+            on_event = getattr(self, 'on_event', None)
+            flow, error = build_graph(workflow_obj, event_callback=on_event)
+            
+            if error:
+                return f"Error building sub-workflow: {error}"
+            
+            # Prepare sub-shared state
+            sub_shared = {"results": {}}
+            if pass_memory:
+                sub_shared["memory"] = shared.get("memory", {}).copy()
+            
+            # Run the sub-workflow (synchronously within the thread)
+            flow.run(sub_shared)
+            
+            # Extract results and merge memory back if needed
+            sub_results = sub_shared.get("results", {})
+            if pass_memory:
+                # Merge sub-workflow memory back to parent
+                if "memory" not in shared:
+                    shared["memory"] = {}
+                shared["memory"].update(sub_shared.get("memory", {}))
+            
+            return sub_results
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return f"Error executing sub-workflow: {str(e)}"
+
+    def post(self, shared, prep_res, exec_res):
+        super().post(shared, prep_res, exec_res)
+        return None

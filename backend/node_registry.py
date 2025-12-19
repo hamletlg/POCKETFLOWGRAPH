@@ -9,7 +9,7 @@ from .nodes.io import FileReadNode, FileWriteNode, PDFReadNode
 from .nodes.web import WebSearchNode, WebFetchNode, RSSNode
 from .nodes.data import MemoryNode, SQLiteNode
 from .nodes.scheduling import CronNode
-from .nodes.control_flow import IfElseNode, SwitchNode, LoopNode, WhileNode, MergeNode, TryCatchNode, DelayNode
+from .nodes.control_flow import IfElseNode, SwitchNode, LoopNode, WhileNode, MergeNode, TryCatchNode, DelayNode, JSONDispatcherNode, SubWorkflowNode
 
 class NodeRegistry:
     def __init__(self):
@@ -36,6 +36,8 @@ class NodeRegistry:
         self.register(MergeNode)
         self.register(TryCatchNode)
         self.register(DelayNode)
+        self.register(JSONDispatcherNode)
+        self.register(SubWorkflowNode)
 
     def register(self, cls):
         if hasattr(cls, "NODE_TYPE"):
