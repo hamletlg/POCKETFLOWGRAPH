@@ -16,10 +16,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
     // Category Definitions
     const categories: Record<string, string[]> = {
         "General": ["start", "debug"],
-        "Control Flow": ["if_else", "switch", "loop", "while_loop", "merge", "try_catch", "delay"],
+        "Control Flow": ["if_else", "switch", "loop", "while_loop", "merge", "try_catch", "delay", "json_dispatcher", "sub_workflow", "sequential_batch"],
         "AI": ["llm"],
         "Web": ["web_search", "web_fetch", "rss_read"],
-        "Data": ["memory", "sqlite"],
+        "Data": ["memory", "sqlite", "variable_extractor", "vector_memory"],
         "Input/Output": ["file_read", "file_write", "pdf_read"],
         "Scheduling": ["cron"]
     };
