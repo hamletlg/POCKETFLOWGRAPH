@@ -7,7 +7,8 @@ class StartNode(BasePlatformNode, Node):
     DESCRIPTION = "Entry point of the flow"
     PARAMS = {
         "local_llm_address": "string",  # e.g. http://localhost:1234/v1
-        "initial_value": "string"       # Optional initial input value
+        "initial_value": "string",       # Optional initial input value
+        "show_overlay": "boolean"       # Toggle execution result overlay
     }
     
     def prep(self, shared):
