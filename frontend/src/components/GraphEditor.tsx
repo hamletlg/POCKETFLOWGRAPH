@@ -136,6 +136,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const [executionResult, setExecutionResult] = useState<string | null>(null);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isDirty, setIsDirty] = useState(false);
+    const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
 
     const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
 
@@ -436,6 +437,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
             console.log("Calling saveWorkflow API...");
             await saveWorkflow(saveName, workflow);
             console.log("API call success");
+            setCurrentWorkflowName(saveName);
             setIsSaveModalOpen(false);
             setSaveName(""); // Reset
             setRefreshTrigger(prev => prev + 1); // Trigger list refresh
@@ -454,6 +456,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
         setNodes(initialNodes);
         setEdges([]);
         setSaveName("");
+        setCurrentWorkflowName(null);
         setIsDirty(false);
     };
 
@@ -643,6 +646,19 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
             {/* Main Canvas Area */}
             <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
+                {/* Workflow Name Header */}
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
+                    <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow-sm border border-gray-200 flex items-center gap-2">
+                        <span className="text-gray-400 font-medium">Workflow:</span>
+                        <span className="text-gray-800 font-bold">
+                            {currentWorkflowName || 'Untitled Workflow'}
+                        </span>
+                        {isDirty && (
+                            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" title="Unsaved changes"></span>
+                        )}
+                    </div>
+                </div>
+
                 <div className="absolute top-4 right-4 z-10 flex gap-2">
                     <button
                         onClick={handleNewClick}
@@ -699,6 +715,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
                                     setNodes(newNodes);
                                     setEdges(newEdges);
+                                    setCurrentWorkflowName(name);
                                     setIsDirty(false); // Reset dirty state on load
                                 } catch (e) {
                                     alert("Error loading: " + e);
