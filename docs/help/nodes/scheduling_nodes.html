@@ -4,34 +4,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scheduling & Core Nodes - PocketFlow</title>
+    <title>Web & Automation - PocketFlow</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2rem;
+        }
+
+        .example {
+            background: #fdf6e3;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 5px solid #d33682;
+            margin-top: 1rem;
+        }
+
+        .param-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .param-name {
+            font-weight: bold;
+            color: #007bff;
+            width: 30%;
+        }
+    </style>
 </head>
 
-<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+<body>
     <a href="../index.html">← Back to Index</a>
-    <h1>Scheduling & Core Nodes</h1>
-
-    <section id="cron">
-        <h3>Cron Node</h3>
-        <p>Triggers a workflow on a schedule (e.g., <code>0 9 * * *</code> for every day at 9 AM).</p>
-    </section>
-
-    <section id="llm">
-        <h3>LLM Node</h3>
-        <p>The "brain" of your workflow. Supports prompt templates with variable injection: <code>{memory_key}</code>.
-        </p>
-    </section>
+    <h1>Web & Automation</h1>
+    <p>These nodes connect your agent to the internet and let it work even while you sleep.</p>
 
     <section id="web_search">
-        <h3>Web Search</h3>
-        <p>Search the live web for information. Results are passed to the next node for processing.</p>
+        <h3>1. Web Search</h3>
+        <p>Searches the live internet for news, facts, or answers.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">query</td>
+                <td>What you want to find. (Example: <code>Weather in London</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">max_results</td>
+                <td>How many links to find. (Example: <code>5</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">as_list</td>
+                <td>True/False. If true, outputs a list of items for a "Loop" node.</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Query:</em> "NVIDIA stock price yesterday"<br>
+            <em>Expected Result:</em> A list of links and short summaries about the stock price.
+        </div>
     </section>
 
-    <section id="file_io">
-        <h3>File I/O (Read/Write)</h3>
-        <p>Interact with the local filesystem. Read text files, PDFs, or write logs and results.</p>
+    <section id="web_fetch">
+        <h3>2. Page Reader (Web Fetch)</h3>
+        <p>Clicks a link and reads all the text on that specific webpage.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">url</td>
+                <td>The address of the website. (Example: <code>https://example.com</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">max_chars</td>
+                <td>Limit the amount of text (to save AI costs). (Example: <code>5000</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>URL:</em> "https://wikipedia.org/wiki/AI"<br>
+            <em>Expected Result:</em> The full text content of that Wikipedia article.
+        </div>
     </section>
+
+    <section id="cron">
+        <h3>3. Schedule (Cron)</h3>
+        <p>Tells the workflow to start itself automatically at certain times.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">schedule_type</td>
+                <td>"Interval" (every X mins) or "Cron" (exact time).</td>
+            </tr>
+            <tr>
+                <td class="param-name">cron_expression</td>
+                <td>Standard time format. (Example: <code>0 9 * * *</code> for 9 AM daily)</td>
+            </tr>
+            <tr>
+                <td class="param-name">interval_value</td>
+                <td>The number for the interval. (Example: <code>30</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">interval_unit</td>
+                <td>"Seconds", "Minutes", or "Hours".</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Type:</em> "Interval"<br>
+            <em>Value:</em> "1"<br>
+            <em>Unit:</em> "Hours"<br>
+            <em>Expected Result:</em> Your workflow runs by itself every hour on the dot.
+        </div>
+    </section>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
 </body>
 
 </html>

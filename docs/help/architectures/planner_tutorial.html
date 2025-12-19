@@ -6,28 +6,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Autonomous Planner Tutorial - PocketFlow</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .concept {
+            border: 1px solid #ddd;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+    </style>
 </head>
 
-<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+<body>
     <a href="../index.html">← Back to Index</a>
     <h1>Autonomous Planning</h1>
-    <p>Planners decompose a large, vague goal into a structured list of actionable steps.</p>
+    <p>A <strong>Planner</strong> is used when a goal is too big for an AI to solve in one go. Instead, it breaks the
+        goal into a "To-Do List" and checks them off one by one.</p>
 
-    <h3>The Architecture</h3>
-    <ol>
-        <li><strong>Planner LLM</strong>: Outputs a list of sub-tasks in JSON.</li>
-        <li><strong>Variable Extractor</strong>: Pulls the <code>task_list</code> from the LLM output.</li>
-        <li><strong>Sequential Batch</strong>: Iterates through the <code>task_list</code>.</li>
-        <li><strong>Executor</strong>: Processes each task (e.g., using <code>Sub-Workflow</code>).</li>
-    </ol>
+    <div class="concept">
+        <h3>Why use a Planner?</h3>
+        <p>If you ask an AI to "Write a 50-page book," it might fail or get confused. A Planner would break it down:
+        <ol>
+            <li>Research the topic.</li>
+            <li>Write Chapter 1.</li>
+            <li>Write Chapter 2... and so on.</li>
+        </ol>
+        </p>
+    </div>
 
-    <h3>Key Benefits</h3>
+    <h3>The 4 Pieces of a Planner:</h3>
     <ul>
-        <li>Handles extremely large tasks that exceed the LLM's single-shot capability.</li>
-        <li>Allows for "Checkpoints" where progress can be saved.</li>
+        <li><strong>1. The Planner (LLM)</strong>: Takes the big goal and outputs a list of smaller steps.</li>
+        <li><strong>2. The Filter (Variable Extractor)</strong>: Grabs just the "To-Do List" from the AI's response.
+        </li>
+        <li><strong>3. The Manager (Sequential Batch)</strong>: Hands each task from the list to the next node, one at a
+            time.</li>
+        <li><strong>4. The Expert (Sub-Workflow)</strong>: A specialized workflow that knows how to execute a single
+            task.</li>
     </ul>
 
-    <p><strong>Example Workflow:</strong> Check <code>autonomous_planner.json</code> in the examples folder.</p>
+    <p><strong>Try it out:</strong> Open the <code>autonomous_planner.json</code> example to see this "Divide and
+        Conquer" strategy in action.</p>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
 </body>
 
 </html>

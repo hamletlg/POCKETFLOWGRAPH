@@ -4,36 +4,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data & Memory Nodes - PocketFlow</title>
+    <title>Knowledge & Files - PocketFlow</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2rem;
+        }
+
+        .example {
+            background: #fdf6e3;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 5px solid #d33682;
+            margin-top: 1rem;
+        }
+
+        .param-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .param-name {
+            font-weight: bold;
+            color: #007bff;
+            width: 30%;
+        }
+    </style>
 </head>
 
-<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+<body>
     <a href="../index.html">← Back to Index</a>
-    <h1>Data & Memory Nodes</h1>
+    <h1>Knowledge & Files</h1>
+    <p>These nodes help your agent remember information, search libraries, and work with files on your computer.</p>
 
     <section id="memory">
-        <h3>Memory Node</h3>
-        <p>Sets or gets values from the workflow's shared memory. Use <code>persistent=True</code> to save data to disk
-            between runs.</p>
-    </section>
+        <h3>1. Memory Node (The Notepad)</h3>
+        <p>Saves or retrieves data from a local scratchpad so nodes can "talk" to each other.</p>
 
-    <section id="variable_extractor">
-        <h3>Variable Extractor</h3>
-        <p>Extracts specific fields from a previous node's output (usually LLM JSON) and saves them into memory
-            variables.</p>
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">operation</td>
+                <td><code>get</code> (read), <code>set</code> (save), or <code>append</code> (add to list).</td>
+            </tr>
+            <tr>
+                <td class="param-name">key</td>
+                <td>The name of the label for your info. (Example: <code>user_name</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">value</td>
+                <td>The data to save (if using 'set'). Leave empty to use the previous node's result.</td>
+            </tr>
+            <tr>
+                <td class="param-name">persistent</td>
+                <td>True/False. If true, the data is saved even if you close the app.</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Operation:</em> "set"<br>
+            <em>Key:</em> "age"<br>
+            <em>Value:</em> "25"<br>
+            <em>Expected Result:</em> You can now use <code>{age}</code> in any later LLM prompt to refer to "25".
+        </div>
     </section>
 
     <section id="vector_memory">
-        <h3>Vector Memory (RAG)</h3>
-        <p>Store and search technical content using semantic embeddings. Useful for giving agents "long-term" knowledge
-            or access to documentation.</p>
+        <h3>2. Vector Memory (The Digital Library)</h3>
+        <p>Searches through massive amounts of text based on "meaning" to find the most relevant context.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">operation</td>
+                <td><code>add</code> (save text) or <code>query</code> (search for text).</td>
+            </tr>
+            <tr>
+                <td class="param-name">collection</td>
+                <td>Name of the "book" or collection. (Example: <code>legal_docs</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">text</td>
+                <td>The text to save or the question to search for.</td>
+            </tr>
+            <tr>
+                <td class="param-name">top_k</td>
+                <td>How many matching results to return. (Example: <code>3</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Operation:</em> "query"<br>
+            <em>Text:</em> "What is the refund policy?"<br>
+            <em>Expected Result:</em> Returns the specific paragraph from your uploaded documents that discusses
+            refunds.
+        </div>
+    </section>
+
+    <section id="variable_extractor">
+        <h3>3. Variable Extractor (The Data Filter)</h3>
+        <p>Picks out specific clean values from a messy AI response and saves them to memory.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">mapping</td>
+                <td>Pairs of "Old Label" : "New Label". (Example: <code>{"name": "user_name"}</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Mapping:</em> <code>{"city": "dest"}</code><br>
+            <em>Input JSON:</em> <code>{"city": "Tokyo", "reason": "Tourism"}</code><br>
+            <em>Expected Result:</em> The word "Tokyo" is saved in memory under the label <code>dest</code>.
+        </div>
     </section>
 
     <section id="sqlite">
-        <h3>SQLite Node</h3>
-        <p>Run SQL queries against a local database. Use for structured data persistence.</p>
+        <h3>4. SQLite Node (The Database)</h3>
+        <p>Runs professional database commands to store or find structured data.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">db_path</td>
+                <td>Path to the database file. (Example: <code>orders.db</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">query</td>
+                <td>The SQL command. (Example: <code>SELECT price FROM products WHERE id=1</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Query:</em> "INSERT INTO logs (msg) VALUES ('Task Done')"<br>
+            <em>Expected Result:</em> A new row is added to your local database table.
+        </div>
     </section>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
 </body>
 
 </html>

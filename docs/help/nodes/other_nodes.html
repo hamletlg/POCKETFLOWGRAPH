@@ -4,30 +4,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Other Core Nodes - PocketFlow</title>
+    <title>Organization & Files - PocketFlow</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2rem;
+        }
+
+        .example {
+            background: #fdf6e3;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 5px solid #d33682;
+            margin-top: 1rem;
+        }
+
+        .param-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .param-name {
+            font-weight: bold;
+            color: #007bff;
+            width: 30%;
+        }
+    </style>
 </head>
 
-<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+<body>
     <a href="../index.html">← Back to Index</a>
-    <h1>Other Core Nodes</h1>
-    <p>Essential utility nodes for your workflows.</p>
+    <h1>Organization & Files</h1>
+    <p>These tools help you manage files and keep your workspace tidy.</p>
 
-    <section id="debug">
-        <h3>Debug Node</h3>
-        <p>Prints the current <code>prep_res</code> to the console and history. Useful for inspecting variable states
-            mid-workflow.</p>
+    <section id="file_read">
+        <h3>1. File Reader</h3>
+        <p>Reads text from a file on your computer.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">path</td>
+                <td>Location of the file. (Example: <code>C:/Users/Bob/note.txt</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Path:</em> "my_notes.txt"<br>
+            <em>Expected Result:</em> The text written inside that file is sent to the next node.
+        </div>
     </section>
 
     <section id="pdf_read">
-        <h3>PDF Read Node</h3>
-        <p>Extracts text from PDF files. Perfect for RAG pipelines that ingest documentation.</p>
+        <h3>2. PDF Reader</h3>
+        <p>Specialized node that reads PDF documents or whole folders of PDFs.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">path</td>
+                <td>Path to the PDF file or a folder.</td>
+            </tr>
+            <tr>
+                <td class="param-name">page_range</td>
+                <td>Which pages to read. (Example: <code>1-3</code> or <code>5,7</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Path:</em> "invoice.pdf"<br>
+            <em>Expected Result:</em> Returns a list of text chunks, one for each page.
+        </div>
     </section>
 
-    <section id="rss_read">
-        <h3>RSS Node</h3>
-        <p>Fetches and parses RSS feeds. Useful for building news monitors or automated researchers.</p>
+    <section id="file_write">
+        <h3>3. File Maker (Write)</h3>
+        <p>Saves text or data into a new file on your computer.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">path</td>
+                <td>Where to save the file. (Example: <code>results.txt</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">mode</td>
+                <td><code>w</code> (write new) or <code>a</code> (add to end).</td>
+            </tr>
+            <tr>
+                <td class="param-name">content</td>
+                <td>Optional: Manually provide text to write. Otherwise, it writes the result of the previous node.</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Path:</em> "log.txt"<br>
+            <em>Mode:</em> "a"<br>
+            <em>Input Result:</em> "Agent completed task."<br>
+            <em>Expected Result:</em> A new line is added to the "log.txt" file.
+        </div>
     </section>
+
+    <section id="debug">
+        <h3>4. Inspect Node (Debug)</h3>
+        <p>A "magnifying glass" for your workflow. It stops to show you what data is currently moving through the line.
+        </p>
+
+        <h4>No Parameters Needed</h4>
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Position:</em> Place it between an LLM and a File node.<br>
+            <em>Expected Result:</em> You can see exactly what text the LLM generated before it gets saved to the file.
+        </div>
+    </section>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
 </body>
 
 </html>

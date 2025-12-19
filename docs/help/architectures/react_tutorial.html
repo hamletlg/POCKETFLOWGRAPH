@@ -6,29 +6,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ReAct Agent Tutorial - PocketFlow</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .loop-step {
+            padding: 1rem;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
 
-<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+<body>
     <a href="../index.html">← Back to Index</a>
-    <h1>ReAct: Reasoning + Acting</h1>
-    <p>A ReAct agent combines logical reasoning with tool use (actions) to solve complex problems.</p>
+    <h1>ReAct: Thinking + Acting</h1>
+    <p>A <strong>ReAct</strong> agent is like a researcher who thinks about what they need to know, uses a tool to find
+        it, and then thinks again based on what they found.</p>
 
-    <h3>The Loop</h3>
-    <ol>
-        <li><strong>Reason</strong>: LLM thinks about the next step.</li>
-        <li><strong>Act</strong>: LLM chooses a tool (e.g., Web Search) via <code>JSONDispatcher</code>.</li>
-        <li><strong>Observe</strong>: The tool's output is fed back into memory.</li>
-        <li><strong>Repeat</strong>: The agent continues until the goal is met.</li>
-    </ol>
+    <h3>How the Loop Works:</h3>
 
-    <h3>Key Nodes</h3>
+    <div class="loop-step">
+        <strong>1. Reason (Think)</strong><br>
+        The LLM "Brain" looks at the goal and thinks: "I need to know the price of gold to answer this."
+    </div>
+
+    <div class="loop-step">
+        <strong>2. Act (Tool Use)</strong><br>
+        The Brain decides to use the <strong>Web Search</strong> node.
+    </div>
+
+    <div class="loop-step">
+        <strong>3. Observe (Learn)</strong><br>
+        The Web Search node returns the price. This info is saved in <strong>Memory</strong>.
+    </div>
+
+    <div class="loop-step">
+        <strong>4. Repeat or Finish</strong><br>
+        The Brain looks at the new info. If it can answer the question, it finishes. If not, it loops back to step 1.
+    </div>
+
+    <h3>Key Nodes You'll Need:</h3>
     <ul>
-        <li><strong>JSON Dispatcher</strong>: Routes the "Action" to the correct node.</li>
-        <li><strong>Web Search</strong>: Gathers external facts.</li>
-        <li><strong>Memory Node</strong>: Keeps track of the search results for the next reasoning step.</li>
+        <li><strong>LLM Node</strong>: To do the "Reasoning."</li>
+        <li><strong>JSON Dispatcher</strong>: To help the Brain click the right "Action" button.</li>
+        <li><strong>Web Search</strong>: To act as the agent's eyes on the internet.</li>
+        <li><strong>Memory Node</strong>: To keep track of what has been discovered so far.</li>
     </ul>
 
-    <p><strong>Example Workflow:</strong> Check <code>react_agent.json</code> in the examples folder.</p>
+    <p><strong>Try it out:</strong> Open the <code>react_agent.json</code> example in the editor!</p>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
 </body>
 
 </html>

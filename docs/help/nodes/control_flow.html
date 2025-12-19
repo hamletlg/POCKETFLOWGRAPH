@@ -4,41 +4,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Flow Nodes - PocketFlow</title>
+    <title>Intelligence & Logic - PocketFlow</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2rem;
+        }
+
+        .example {
+            background: #fdf6e3;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 5px solid #d33682;
+            margin-top: 1rem;
+        }
+
+        .param-table {
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .param-name {
+            font-weight: bold;
+            color: #007bff;
+            width: 30%;
+        }
+    </style>
 </head>
 
-<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+<body>
     <a href="../index.html">← Back to Index</a>
-    <h1>Control Flow Nodes</h1>
-    <p>These nodes manage the logic and path of your workflow.</p>
+    <h1>Intelligence & Logic</h1>
+    <p>These nodes act like the "Brain" of your agent. They help it think, make choices, and repeat tasks until a goal
+        is met.</p>
+
+    <section id="llm">
+        <h3>1. LLM Node (The Brain)</h3>
+        <p>This is where the AI thinking happens. You give it instructions (a prompt), and it generates a text response.
+        </p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">api_base</td>
+                <td>The address of your AI server. (Example: <code>http://localhost:1234/v1</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">model</td>
+                <td>The name of the AI model to use. (Example: <code>llama-3.2</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">system_prompt</td>
+                <td>Global instructions for the AI. (Example: <code>You are a professional editor.</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">user_prompt</td>
+                <td>The specific request. Use <code>{input}</code> to include the previous node's result. (Example:
+                    <code>Summarize: {input}</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">temperature</td>
+                <td>Creativity level from 0 (strict) to 1 (creative). (Example: <code>0.7</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">use_history</td>
+                <td>True/False. If true, the AI remembers previous messages in the conversation.</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>User Prompt:</em> "Translate to Spanish: {input}"<br>
+            <em>Input Value:</em> "Hello, how are you?"<br>
+            <em>Expected Result:</em> "Hola, ¿cómo estás?"
+        </div>
+    </section>
 
     <section id="if_else">
-        <h3>If/Else Node</h3>
-        <p>Routes execution based on a Python condition. Example: <code>int(score) > 8</code>.</p>
+        <h3>2. If/Else Node (The Choice Maker)</h3>
+        <p>This node checks a condition and decides which path (True or False) to take.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">condition</td>
+                <td>A Python-style logic check. (Example: <code>int({input}) > 80</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">value</td>
+                <td>Optional: Manually provide a value to check instead of using the previous result.</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Condition:</em> "len({input}) > 100"<br>
+            <em>Input Value:</em> a long 200-character paragraph.<br>
+            <em>Expected Result:</em> Execution continues along the <strong>True</strong> path.
+        </div>
     </section>
 
     <section id="while_loop">
-        <h3>While Loop</h3>
-        <p>Repeats a branch as long as a condition is true. Essential for self-correction loops.</p>
+        <h3>3. While Loop (The Persistence Engine)</h3>
+        <p>Repeats a task over and over as long as a condition remains true.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">condition</td>
+                <td>The loop continues while this is true. (Example: <code>quality_score < 8</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">max_iterations</td>
+                <td>Safety stop. It will quit after this many tries. (Example: <code>10</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Condition:</em> "check_finished == 'no'"<br>
+            <em>Expected Result:</em> The workflow repeats its steps until another node changes
+            <code>check_finished</code> to 'yes'.
+        </div>
     </section>
 
     <section id="json_dispatcher">
-        <h3>JSON Dispatcher</h3>
-        <p>Extracts a key from JSON (e.g., <code>"action"</code>) and routes to handles named after the possible values
-            (e.g., <code>"search"</code>, <code>"write"</code>).</p>
+        <h3>4. JSON Dispatcher (The Tool Selector)</h3>
+        <p>Automatically triggers different tools based on a specific word in the AI's response.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">routing_key</td>
+                <td>The name of the label to look for. (Example: <code>action</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">action_1_value</td>
+                <td>If the label matches this word, go to 'Action 1'. (Example: <code>search</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Routing Key:</em> "command"<br>
+            <em>Action 1 Value:</em> "email"<br>
+            <em>Input JSON:</em> <code>{"command": "email", "to": "bob"}</code><br>
+            <em>Expected Result:</em> The workflow triggers the output connected to <strong>action_1</strong>.
+        </div>
     </section>
 
     <section id="sequential_batch">
-        <h3>Sequential Batch</h3>
-        <p>Iterates through a list of items sequentially. Perfect for executing multi-step plans generated by an LLM.
-        </p>
+        <h3>5. Sequential Batch (The Step-by-Step List)</h3>
+        <p>Takes a list of items and processes them one by one in order.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">items_key</td>
+                <td>The name of the list in memory. (Example: <code>todo_list</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">current_item_var</td>
+                <td>The name to give the current item being processed. (Example: <code>task</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Items Key:</em> "cities"<br>
+            <em>Memory:</em> <code>{"cities": ["Madrid", "Paris", "Berlin"]}</code><br>
+            <em>Expected Result:</em> The workflow runs 3 times. The first time, <code>{task}</code> will be "Madrid".
+        </div>
     </section>
 
-    <section id="sub_workflow">
-        <h3>Sub-Workflow</h3>
-        <p>Executes another saved workflow as a single step. Allows for modular and hierarchical design.</p>
-    </section>
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
 </body>
 
 </html>

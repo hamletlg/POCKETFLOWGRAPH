@@ -6,30 +6,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System 2 Reasoning Tutorial - PocketFlow</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .system {
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+    </style>
 </head>
 
-<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+<body>
     <a href="../index.html">← Back to Index</a>
-    <h1>System 2 Reasoning / Reflexion</h1>
-    <p>System 2 thinking involves slowing down the agent to critique and refine its own output before finalizing it.</p>
+    <h1>System 2: "Deep Thinking"</h1>
+    <p>Human brains have two ways of thinking: <strong>System 1</strong> (fast, intuitive, sometimes wrong) and
+        <strong>System 2</strong> (slow, logical, careful). We can build agents that work the same way!</p>
 
-    <h3>The Architecture</h3>
+    <div class="comparison">
+        <div class="system" style="background-color: #fff3cd;">
+            <strong>System 1</strong><br>
+            "What is 2+2?"<br>
+            <em>Instant answer: 4.</em>
+        </div>
+        <div class="system" style="background-color: #d1ecf1;">
+            <strong>System 2</strong><br>
+            "What is 1,234 x 567?"<br>
+            <em>I need to write this down and double-check my math.</em>
+        </div>
+    </div>
+
+    <h3>How to build a "Careful" Agent:</h3>
     <ol>
-        <li><strong>Generator</strong>: An LLM node that produces the initial draft.</li>
-        <li><strong>Critic</strong>: A second LLM node prompted to look for flaws in the draft.</li>
-        <li><strong>Variable Extractor</strong>: Parses the Critic's feedback (e.g., getting a "quality_score").</li>
-        <li><strong>While Loop</strong>: Checks if <code>quality_score < 8</code>. If so, it loops back to the
-            Generator.</li>
+        <li><strong>The Generator</strong>: An LLM node writes a first draft of an answer.</li>
+        <li><strong>The Critic</strong>: A second LLM node is told: "Find every mistake in that draft."</li>
+        <li><strong>The Decision</strong>: Use a <strong>While Loop</strong>. If the Critic found mistakes (Score < 8),
+                send the draft back to the Generator to fix it.</li>
+        <li><strong>Finalization</strong>: Only output the result once it passes the Critic's test.</li>
     </ol>
 
-    <h3>Benefits</h3>
-    <ul>
-        <li>Higher quality output for complex tasks.</li>
-        <li>Reduced hallucinations through self-verification.</li>
-        <li>Mimics human-like "deliberate" thinking.</li>
-    </ul>
+    <h3>Why bother?</h3>
+    <p>This "Thinking Out Loud" or "Self-Correction" process significantly reduces AI mistakes (hallucinations) and
+        results in much higher quality writing or coding.</p>
 
-    <p><strong>Example Workflow:</strong> Check <code>reasoning_loop.json</code> in the examples folder.</p>
+    <p><strong>Try it out:</strong> Check the <code>reasoning_loop.json</code> example!</p>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
 </body>
 
 </html>
