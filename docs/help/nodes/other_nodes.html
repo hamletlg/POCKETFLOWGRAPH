@@ -42,8 +42,29 @@
 
 <body>
     <a href="../index.html">← Back to Index</a>
-    <h1>Organization & Files</h1>
-    <p>These tools help you manage files and keep your workspace tidy.</p>
+    <h1>General & Organization</h1>
+    <p>These tools help you manage the flow entry, files, and keep your workspace tidy.</p>
+
+    <section id="start">
+        <h3>1. Start Flow</h3>
+        <p>The entry point of your workflow. This node must be present for a workflow to run.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">local_llm_address</td>
+                <td>Optional: Override the global LLM server address for this specific flow.</td>
+            </tr>
+            <tr>
+                <td class="param-name">initial_value</td>
+                <td>Optional: Provide a starting text to be passed to the next node.</td>
+            </tr>
+            <tr>
+                <td class="param-name">show_overlay</td>
+                <td>True/False. If true, the execution result will be shown in a floating panel at the bottom.</td>
+            </tr>
+        </table>
+    </section>
 
     <section id="file_read">
         <h3>1. File Reader</h3>
