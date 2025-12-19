@@ -5,34 +5,51 @@ import tempfile
 from .base import BasePlatformNode
 from pocketflow import Node
 
+
 class ScriptNode(BasePlatformNode, Node):
     """
     Execute external Bash commands or Python scripts.
-    
+
     Features:
     - Supports Bash and Python 3.
     - Input via stdin or POCKETFLOW_INPUT environment variable.
     - Return stdout, exit code, or a full result object.
     """
+
     NODE_TYPE = "script"
     DESCRIPTION = "Execute external Bash or Python code"
     PARAMS = {
-        "interpreter": "string",  # 'bash' or 'python'
-        "script_body": "string",   # The code to run
-        "input_mode": "string",   # 'none', 'stdin', or 'env'
-        "return_type": "string"   # 'stdout', 'exit_code', or 'json'
+        "interpreter": {
+            "type": "string",
+            "enum": ["bash", "python"],
+            "default": "bash",
+            "description": "Script interpreter to use",
+        },
+        "script_body": {"type": "string", "description": "The script code to execute"},
+        "input_mode": {
+            "type": "string",
+            "enum": ["none", "stdin", "env"],
+            "default": "stdin",
+            "description": "How to pass input to the script",
+        },
+        "return_type": {
+            "type": "string",
+            "enum": ["stdout", "exit_code", "json"],
+            "default": "stdout",
+            "description": "What the script returns",
+        },
     }
 
     def prep(self, shared):
-        cfg = getattr(self, 'config', {})
-        
+        cfg = getattr(self, "config", {})
+
         # Get input from previous node (standard PocketFlow pattern)
         results = shared.get("results", {})
         last_result = ""
         if results:
             last_key = list(results.keys())[-1]
             last_result = results[last_key]
-            
+
         # Ensure last_result is a string for stdin/env
         if not isinstance(last_result, str):
             try:
@@ -45,7 +62,7 @@ class ScriptNode(BasePlatformNode, Node):
             "script_body": cfg.get("script_body", ""),
             "input_mode": cfg.get("input_mode", "stdin").lower(),
             "return_type": cfg.get("return_type", "stdout").lower(),
-            "input_val": last_result
+            "input_val": last_result,
         }
 
     def exec(self, prep_res):
@@ -65,7 +82,7 @@ class ScriptNode(BasePlatformNode, Node):
 
         # Create a temporary file for the script to avoid shell escaping issues
         suffix = ".sh" if interpreter == "bash" else ".py"
-        with tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False) as tf:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=suffix, delete=False) as tf:
             tf.write(script_body)
             temp_script_path = tf.name
 
@@ -78,21 +95,21 @@ class ScriptNode(BasePlatformNode, Node):
 
             # Execute
             stdin_val = input_val if input_mode == "stdin" else None
-            
+
             process = subprocess.run(
                 cmd,
                 input=stdin_val,
                 capture_output=True,
                 text=True,
                 env=env,
-                timeout=30 # Safety timeout
+                timeout=30,  # Safety timeout
             )
 
             result_data = {
                 "stdout": process.stdout.strip(),
                 "stderr": process.stderr.strip(),
                 "exit_code": process.returncode,
-                "success": process.returncode == 0
+                "success": process.returncode == 0,
             }
 
             # Handle return types
@@ -100,9 +117,11 @@ class ScriptNode(BasePlatformNode, Node):
                 return process.returncode
             elif return_type == "json":
                 return result_data
-            else: # default stdout
+            else:  # default stdout
                 if not result_data["success"] and not result_data["stdout"]:
-                    return f"Error (Code {process.returncode}): {process.stderr.strip()}"
+                    return (
+                        f"Error (Code {process.returncode}): {process.stderr.strip()}"
+                    )
                 return result_data["stdout"]
 
         except subprocess.TimeoutExpired:

@@ -2,12 +2,19 @@ import axios from 'axios';
 
 const API_BASE = 'http://localhost:8000';
 
+export interface ParameterDefinition {
+    type: string;
+    enum?: string[];
+    default?: any;
+    description?: string;
+}
+
 export interface NodeMetadata {
     type: string;
     description: string;
     inputs: string[];
     outputs: string[];
-    params: Record<string, string>;
+    params: Record<string, string | ParameterDefinition>;
 }
 
 export const fetchNodes = async (): Promise<NodeMetadata[]> => {

@@ -1,14 +1,28 @@
 from .base import BasePlatformNode
 from pocketflow import Node
 
+
 class CronNode(BasePlatformNode, Node):
     NODE_TYPE = "cron"
     DESCRIPTION = "Run workflow on a schedule (Interval or Cron)"
     PARAMS = {
-        "schedule_type": "string", # "Interval" or "Cron"
-        "interval_value": "int",   # e.g. 5
-        "interval_unit": "string", # "Seconds", "Minutes", "Hours"
-        "cron_expression": "string" # e.g. "* * * * *"
+        "schedule_type": {
+            "type": "string",
+            "enum": ["Interval", "Cron"],
+            "default": "Interval",
+            "description": "Type of schedule",
+        },
+        "interval_value": {"type": "int", "description": "Interval value (e.g., 5)"},
+        "interval_unit": {
+            "type": "string",
+            "enum": ["Seconds", "Minutes", "Hours"],
+            "default": "Minutes",
+            "description": "Interval unit",
+        },
+        "cron_expression": {
+            "type": "string",
+            "description": "Cron expression (e.g., '* * * * *')",
+        },
     }
 
     def prep(self, shared):

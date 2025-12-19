@@ -90,26 +90,63 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
 
             {nodeMeta?.params && Object.keys(nodeMeta.params).length > 0 ? (
                 <div className="space-y-4">
-                    {Object.entries(nodeMeta.params).map(([key, typeRaw]) => {
-                        // simple type handling
-                        const isMultiLine = key.includes('prompt') || key.includes('content') || key.includes('query');
-                        const isBoolean = typeRaw === 'boolean';
+                    {Object.entries(nodeMeta.params).map(([key, paramDefRaw]) => {
+                        // Handle both old string format and new ParameterDefinition format
+                        let paramType: string;
+                        let enumOptions: string[] | undefined;
+                        let defaultValue: any;
+                        let description: string | undefined;
+                        
+                        if (typeof paramDefRaw === 'string') {
+                            // Old format - simple string
+                            paramType = paramDefRaw;
+                        } else {
+                            // New format - ParameterDefinition object
+                            paramType = paramDefRaw.type;
+                            enumOptions = paramDefRaw.enum;
+                            defaultValue = paramDefRaw.default;
+                            description = paramDefRaw.description;
+                        }
+                        
+                        // Determine input type
+                        const isBoolean = paramType === 'boolean';
+                        const isEnum = enumOptions && enumOptions.length > 0;
+                        const isMultiLine = key.includes('prompt') || key.includes('content') || key.includes('query') || key.includes('script_body');
+                        
+                        // Get current value or default
+                        let currentValue = params[key];
+                        if (currentValue === undefined && defaultValue !== undefined) {
+                            currentValue = defaultValue;
+                        }
 
                         return (
                             <div key={key} className={isBoolean ? "flex items-center gap-2" : ""}>
                                 <label className="block text-xs font-medium text-gray-600 mb-1 capitalize">
                                     {key.replace(/_/g, ' ')}
                                 </label>
+                                
                                 {isBoolean ? (
                                     <input
                                         type="checkbox"
-                                        checked={params[key] === 'true' || params[key] === true}
+                                        checked={currentValue === 'true' || currentValue === true}
                                         onChange={(e) => handleChange(key, e.target.checked)}
                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                     />
+                                ) : isEnum ? (
+                                    <select
+                                        value={currentValue || defaultValue || ''}
+                                        onChange={(e) => handleChange(key, e.target.value)}
+                                        className="w-full text-sm p-2 border border-gray-300 rounded focus:border-blue-500 outline-none bg-white"
+                                    >
+                                        {enumOptions.map(option => (
+                                            <option key={option} value={option}>
+                                                {option}
+                                            </option>
+                                        ))}
+                                    </select>
                                 ) : isMultiLine ? (
                                     <textarea
-                                        value={params[key] || ''}
+                                        value={currentValue || ''}
                                         onChange={(e) => handleChange(key, e.target.value)}
                                         className="w-full text-sm p-2 border border-gray-300 rounded focus:border-blue-500 outline-none min-h-[100px]"
                                         placeholder={`Enter ${key}...`}
@@ -117,13 +154,19 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                                 ) : (
                                     <input
                                         type="text"
-                                        value={params[key] || ''}
+                                        value={currentValue || ''}
                                         onChange={(e) => handleChange(key, e.target.value)}
                                         className="w-full text-sm p-2 border border-gray-300 rounded focus:border-blue-500 outline-none"
                                         placeholder={`Enter ${key}`}
                                     />
                                 )}
-                                {!isBoolean && <p className="text-[10px] text-gray-400 text-right mt-0.5">{typeRaw}</p>}
+                                
+                                {/* Show parameter description or type */}
+                                {description ? (
+                                    <p className="text-[10px] text-gray-500 text-right mt-0.5">{description}</p>
+                                ) : !isBoolean && (
+                                    <p className="text-[10px] text-gray-400 text-right mt-0.5">{paramType}</p>
+                                )}
                             </div>
                         );
                     })}

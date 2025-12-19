@@ -1,41 +1,66 @@
 from pocketflow import Node, BatchNode, AsyncNode
 from pydantic import BaseModel
-from typing import List, Dict, Any, Type, Optional
+from typing import List, Dict, Any, Type, Optional, Union
+
+
+class ParameterDefinition(BaseModel):
+    type: str  # "string", "boolean", "int", "float"
+    enum: Optional[List[str]] = None  # For enum parameters
+    default: Optional[Any] = None  # Default value
+    description: Optional[str] = None  # Parameter description
+
 
 class NodeSchema(BaseModel):
     type: str
     description: str
     inputs: List[str] = ["default"]
     outputs: List[str] = ["default"]
-    params: Dict[str, str] = {} # param_name: type (string, int, boolean)
+    params: Dict[
+        str, Union[str, ParameterDefinition]
+    ] = {}  # param_name: type or ParameterDefinition
+
 
 class BasePlatformNode:
     """Mixin to add platform metadata to PocketFlow nodes"""
+
     NODE_TYPE = "base"
     DESCRIPTION = "Base Node"
     INPUTS = ["default"]
     OUTPUTS = ["default"]
-    PARAMS = {} # Example: {"prompt": "string", "retries": "int"}
+    PARAMS = {}  # Example: {"prompt": "string", "retries": "int"}
 
     @classmethod
     def get_schema(cls) -> NodeSchema:
+        # Convert simple PARAMS dict to ParameterDefinition objects
+        enhanced_params = {}
+        for param_name, param_def in cls.PARAMS.items():
+            if isinstance(param_def, dict):
+                # Already enhanced format
+                enhanced_params[param_name] = ParameterDefinition(**param_def)
+            else:
+                # Simple string format - convert to ParameterDefinition
+                enhanced_params[param_name] = ParameterDefinition(type=param_def)
+
         return NodeSchema(
             type=cls.NODE_TYPE,
             description=cls.DESCRIPTION,
             inputs=cls.INPUTS,
             outputs=cls.OUTPUTS,
-            params=cls.PARAMS
+            params=enhanced_params,
         )
 
     def run(self, shared):
-        node_id = getattr(self, 'id', 'unknown')
-        callback = getattr(self, 'on_event', None)
-        
-        print(f"DEBUG BasePlatformNode.run: node_id={node_id}, has_callback={callback is not None}")
-        
+        node_id = getattr(self, "id", "unknown")
+        callback = getattr(self, "on_event", None)
+
+        print(
+            f"DEBUG BasePlatformNode.run: node_id={node_id}, has_callback={callback is not None}"
+        )
+
         if callback:
             import asyncio
-            # Call callback somewhat correctly. 
+
+            # Call callback somewhat correctly.
             # If callback is async? Our engine calls run in a thread usually.
             # But the callback (broadcast) is async.
             # If run is synchronous, we can't await easily.
@@ -53,70 +78,82 @@ class BasePlatformNode:
             prep_res = self.prep(shared)
             exec_res = self.exec(prep_res)
             res = self.post(shared, prep_res, exec_res)
-            
+
             if callback:
                 try:
                     print(f"DEBUG: Calling callback for node_end: {node_id}")
                     callback("node_end", {"node_id": node_id})
                 except Exception as e:
                     print(f"Callback error: {e}")
-            
+
             return res
         except Exception as e:
             if callback:
-                 try:
+                try:
                     callback("node_error", {"node_id": node_id, "error": str(e)})
-                 except: 
-                     pass
+                except:
+                    pass
             raise e
 
     def post(self, shared, prep_res, exec_res):
         print(f"DEBUG: Executing post for {getattr(self, 'name', 'Unknown')}")
         if "results" not in shared:
             shared["results"] = {}
-        # Use node name or ID if available. 
+        # Use node name or ID if available.
         # PocketFlow Nodes have .name attribute.
         shared["results"][self.name] = exec_res
         # Also store by ID if possible?
-        node_id = getattr(self, 'id', None)
+        node_id = getattr(self, "id", None)
         if node_id:
-             shared["results"][node_id] = exec_res
-             
+            shared["results"][node_id] = exec_res
+
         print(f"DEBUG: Updated shared['results'] with {self.name}")
         # Return None to use "default" edge
         return None
+
 
 # Example wrapper
 class DebugNode(BasePlatformNode, Node):
     NODE_TYPE = "debug"
     DESCRIPTION = "Print input to console"
-    PARAMS = {"prefix": "string", "show_shared": "boolean"}
-    
+    PARAMS = {
+        "prefix": {
+            "type": "string",
+            "default": "DEBUG",
+            "description": "Debug message prefix",
+        },
+        "show_shared": {
+            "type": "boolean",
+            "default": False,
+            "description": "Show shared memory in debug output",
+        },
+    }
+
     def prep(self, shared):
-        cfg = getattr(self, 'config', {})
+        cfg = getattr(self, "config", {})
         prefix = cfg.get("prefix", "DEBUG")
         show_shared = cfg.get("show_shared", False)
-        
+
         # Get input from previous node
         results = shared.get("results", {})
         last_result = None
         if results:
             last_key = list(results.keys())[-1]
             last_result = results[last_key]
-        
+
         return {
             "prefix": prefix,
             "input": last_result,
-            "shared": shared if show_shared else None
+            "shared": shared if show_shared else None,
         }
 
     def exec(self, prep_res):
         prefix = prep_res.get("prefix", "DEBUG")
         input_val = prep_res.get("input")
         shared = prep_res.get("shared")
-        
+
         print(f"[{prefix}] Input: {input_val}")
         if shared:
             print(f"[{prefix}] Memory: {shared.get('memory', {})}")
-        
+
         return input_val  # Pass through the input
