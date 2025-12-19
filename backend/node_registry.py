@@ -12,6 +12,7 @@ from .nodes.data import MemoryNode, SQLiteNode, VariableExtractorNode
 from .nodes.vector_memory import VectorMemoryNode
 from .nodes.base import NodeSchema
 from .nodes.scheduling import CronNode
+from .nodes.human import HumanInputNode
 
 # No changes needed here, just verifying.
 
@@ -45,6 +46,7 @@ class NodeRegistry:
         self.register(VariableExtractorNode)
         self.register(SequentialBatchNode)
         self.register(VectorMemoryNode)
+        self.register(HumanInputNode)
         
         # Visual/Utility Nodes (Front-end only, dummies in backend)
         class NoteNode:

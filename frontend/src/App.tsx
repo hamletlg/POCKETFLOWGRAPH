@@ -4,6 +4,9 @@ import { GraphEditor } from './components/GraphEditor';
 import { fetchNodes } from './api/client';
 import type { NodeMetadata } from './api/client';
 
+import { ReactFlowProvider } from 'reactflow';
+import 'reactflow/dist/style.css';
+
 function App() {
   const [nodes, setNodes] = useState<NodeMetadata[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +31,9 @@ function App() {
 
   return (
     <div className="h-screen w-screen bg-white">
-      <GraphEditor availableNodes={nodes} />
+      <ReactFlowProvider>
+        <GraphEditor availableNodes={nodes} />
+      </ReactFlowProvider>
     </div>
   );
 }

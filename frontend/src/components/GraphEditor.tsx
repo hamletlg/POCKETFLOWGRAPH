@@ -1,18 +1,20 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
-    ReactFlowProvider,
     addEdge,
     useNodesState,
     useEdgesState,
     Controls,
     Background,
+    updateEdge,
 } from 'reactflow';
-import type { Connection, Node, NodeChange } from 'reactflow';
+import type { Connection, Edge, Node, NodeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Sidebar } from './Sidebar';
 import { PropertiesPanel } from './PropertiesPanel';
 import CustomNode from './CustomNode';
 import NoteNode from './NoteNode';
+import ButtonEdge from './ButtonEdge';
+import { HumanInputModal } from './HumanInputModal';
 import { saveWorkflow, loadWorkflow, listWorkflows, runWorkflow, deleteWorkflow, exportWorkflow } from '../api/client';
 import type { NodeMetadata } from '../api/client';
 
@@ -116,15 +118,10 @@ const initialNodes: Node[] = [
     },
 ];
 
-let id = 0;
-const getId = () => `dndnode_${id++}`;
+const getId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 export const GraphEditor: React.FC<GraphEditorProps> = (props) => {
-    return (
-        <ReactFlowProvider>
-            <GraphEditorContent {...props} />
-        </ReactFlowProvider>
-    );
+    return <GraphEditorContent {...props} />;
 };
 
 // Moving Content content here to allow hooks
@@ -138,10 +135,19 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isDirty, setIsDirty] = useState(false);
     const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
+    const [humanInputRequest, setHumanInputRequest] = useState<any>(null);
 
     const nodeTypes = useMemo(() => ({
         custom: CustomNode,
         note: NoteNode
+    }), []);
+
+    const edgeTypes = useMemo(() => ({
+        button: ButtonEdge,
+    }), []);
+
+    const defaultEdgeOptions = useMemo(() => ({
+        type: 'button',
     }), []);
 
     // State for Execution Visualization
@@ -173,6 +179,8 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                 } else if (msg.type === 'workflow_error') {
                     setExecutingNodes(new Set());
                     alert("Workflow Error: " + msg.payload);
+                } else if (msg.type === 'USER_INPUT_REQUIRED') {
+                    setHumanInputRequest(msg.payload);
                 }
             } catch (e) {
                 console.error("WS Error", e);
@@ -186,14 +194,25 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
     // Update nodes styling based on execution
     useEffect(() => {
+        if (executingNodes.size === 0) {
+            // Optionally reset styles when nothing is executing
+            // but usually we want them to stay as-is or clear.
+            // Let's just avoid unnecessary setNodes calls.
+            return;
+        }
         setNodes((nds) =>
             nds.map((node) => {
                 const isExecuting = executingNodes.has(node.id);
+                const currentBorder = node.style?.border;
+                const newBorder = isExecuting ? '2px solid #3b82f6' : '1px solid #777';
+
+                if (currentBorder === newBorder) return node; // Optimization
+
                 return {
                     ...node,
                     style: {
                         ...node.style,
-                        border: isExecuting ? '2px solid #3b82f6' : '1px solid #777',
+                        border: newBorder,
                         boxShadow: isExecuting ? '0 0 10px #3b82f6' : 'none',
                         transition: 'all 0.3s ease'
                     },
@@ -213,10 +232,18 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
     const onConnect = useCallback(
         (params: Connection) => {
-            setEdges((eds) => addEdge(params, eds));
+            setEdges((eds) => addEdge({ ...params, type: 'button' }, eds));
             setIsDirty(true);
         },
         [setEdges],
+    );
+
+    const onEdgeUpdate = useCallback(
+        (oldEdge: Edge, newConnection: Connection) => {
+            setEdges((els) => updateEdge(oldEdge, newConnection, els));
+            setIsDirty(true);
+        },
+        [setEdges]
     );
 
     const onDragOver = useCallback((event: React.DragEvent) => {
@@ -276,7 +303,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
         [reactFlowInstance, setNodes, availableNodes],
     );
 
-    const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
         setSelectedNodeId(node.id);
     }, []);
 
@@ -532,6 +559,17 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
     return (
         <div className="flex h-screen w-screen overflow-hidden">
+            {/* Human Input Modal */}
+            {humanInputRequest && (
+                <HumanInputModal
+                    requestId={humanInputRequest.request_id}
+                    prompt={humanInputRequest.prompt}
+                    fields={humanInputRequest.fields}
+                    contextData={humanInputRequest.data}
+                    onClose={() => setHumanInputRequest(null)}
+                />
+            )}
+
             {/* New Workflow Confirmation Modal */}
             {isNewModalOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
@@ -785,13 +823,18 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                         if (changes.length > 0) setIsDirty(true);
                     }}
                     onConnect={onConnect}
+                    onEdgeUpdate={onEdgeUpdate}
+                    nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
+                    defaultEdgeOptions={defaultEdgeOptions}
                     onInit={setReactFlowInstance}
                     onDrop={onDrop}
                     onDragOver={onDragOver}
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
-                    nodeTypes={nodeTypes}
                     fitView
+                    snapToGrid
+                    snapGrid={[15, 15]}
                 >
                     <Controls />
                     <Background color="#aaa" gap={16} />

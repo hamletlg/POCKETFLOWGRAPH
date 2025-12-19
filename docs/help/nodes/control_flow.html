@@ -68,7 +68,8 @@
             <tr>
                 <td class="param-name">user_prompt</td>
                 <td>The specific request. Use <code>{input}</code> to include the previous node's result. (Example:
-                    <code>Summarize: {input}</code>)</td>
+                    <code>Summarize: {input}</code>)
+                </td>
             </tr>
             <tr>
                 <td class="param-name">temperature</td>
@@ -182,6 +183,36 @@
             <em>Items Key:</em> "cities"<br>
             <em>Memory:</em> <code>{"cities": ["Madrid", "Paris", "Berlin"]}</code><br>
             <em>Expected Result:</em> The workflow runs 3 times. The first time, <code>{task}</code> will be "Madrid".
+        </div>
+    </section>
+
+    <section id="human_input">
+        <h3>6. Human Input (The Safety Gate)</h3>
+        <p>This node pauses the entire workflow and waits for you to approve a decision or fill out a form.</p>
+
+        <h4>Parameters:</h4>
+        <table class="param-table">
+            <tr>
+                <td class="param-name">prompt</td>
+                <td>The message you will see in the popup. (Example: <code>Check this draft</code>)</td>
+            </tr>
+            <tr>
+                <td class="param-name">fields</td>
+                <td>A list of questions for the form. (Example: <code>[{"name": "feedback", "type": "text"}]</code>)
+                </td>
+            </tr>
+            <tr>
+                <td class="param-name">timeout</td>
+                <td>How many seconds to wait before giving up. (Example: <code>60</code>)</td>
+            </tr>
+        </table>
+
+        <div class="example">
+            <strong>Example:</strong><br>
+            <em>Prompt:</em> "Should I send this email?"<br>
+            <em>Fields:</em> <code>[{"name": "approved", "type": "boolean"}]</code><br>
+            <em>Expected Result:</em> A popup appear on your screen. If you check the box, the flow continues along the
+            <strong>approved</strong> path.
         </div>
     </section>
 

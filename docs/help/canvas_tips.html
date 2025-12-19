@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas & Workflow Tips - PocketFlow</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 2rem;
+        }
+
+        .tip-box {
+            background: #e1f5fe;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 5px solid #0288d1;
+            margin-top: 1rem;
+        }
+
+        kbd {
+            background-color: #eee;
+            border-radius: 3px;
+            border: 1px solid #b4b4b4;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+            color: #333;
+            display: inline-block;
+            font-size: 0.85em;
+            font-weight: 700;
+            line-height: 1;
+            padding: 2px 4px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="index.html">← Back to Index</a>
+    <h1>Canvas & Workflow Tips</h1>
+    <p>Learn how to efficiently manage your workflows on the canvas.</p>
+
+    <section id="edges">
+        <h3>Managing Connections (Edges)</h3>
+        <p>Connecting nodes is easy, but sometimes you need to reorganize them. Here is how you can manage your
+            connections:</p>
+
+        <div class="tip-box">
+            <strong>1. Quick Delete (Button)</strong><br>
+            Hover your mouse over any connection line. A small <code style="color: red; font-weight: bold;">×</code>
+            button will appear. Click it to immediately remove the connection.
+        </div>
+
+        <div class="tip-box">
+            <strong>2. Selection & Keyboard Delete</strong><br>
+            Click directly on a connection line to select it. Once selected (it will turn blue), you can press the
+            <kbd>Delete</kbd> or <kbd>Backspace</kbd> key on your keyboard to remove it.
+        </div>
+
+        <div class="tip-box">
+            <strong>3. Reconnecting (Update)</strong><br>
+            You don't have to delete an edge to change its target! Click and drag the <strong>end</strong> of a
+            connection (where it enters the target node) and drop it onto a different node to update the connection.
+        </div>
+    </section>
+
+    <section id="nodes">
+        <h3>Node Tips</h3>
+        <ul>
+            <li><strong>Right-Click (Context Menu):</strong> Right-click a node to see more options (coming soon!).</li>
+            <li><strong>Selection:</strong> Click a node to see its properties in the right panel.</li>
+            <li><strong>Multiple Selection:</strong> Drag a selection box over multiple nodes to move them all at once.
+            </li>
+        </ul>
+    </section>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
+</body>
+
+</html>

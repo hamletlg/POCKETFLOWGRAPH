@@ -46,3 +46,8 @@ export const exportWorkflow = async (workflow: any) => {
     });
     return response.data;
 };
+
+export const humanRespond = async (requestId: string, data: any) => {
+    const response = await axios.post(`${API_BASE}/api/human/respond/${requestId}`, data);
+    return response.data;
+};

@@ -11,6 +11,7 @@ import logging
 from .node_registry import registry
 from .scheduler import SchedulerService
 from .schemas import NodeMetadata, Edge, NodeConfig, Workflow
+from .nodes.human import pending_requests
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO)
@@ -170,6 +171,17 @@ def delete_workflow(name: str):
         logger.error(f"Failed to refresh scheduler: {e}")
 
     return {"status": "deleted", "name": name}
+
+@app.post("/api/human/respond/{request_id}")
+async def human_respond(request_id: str, data: Dict[str, Any]):
+    if request_id not in pending_requests:
+        raise HTTPException(status_code=404, detail="Request not found or already processed")
+    
+    # Store data and trigger the event
+    pending_requests[request_id]["response"] = data
+    pending_requests[request_id]["event"].set()
+    
+    return {"status": "ok", "message": "Signal sent to workflow"}
 
 @app.websocket("/api/ws")
 async def websocket_endpoint(websocket: WebSocket):
