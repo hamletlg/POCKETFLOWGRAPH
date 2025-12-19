@@ -9,3 +9,5 @@ playwright
 pymupdf
 schedule
 pocketflow
+chromadb
+pydantic-settings

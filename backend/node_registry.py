@@ -9,6 +9,8 @@ from .nodes.io import FileReadNode, FileWriteNode, PDFReadNode
 from .nodes.control_flow import IfElseNode, SwitchNode, LoopNode, WhileNode, MergeNode, TryCatchNode, DelayNode, JSONDispatcherNode, SubWorkflowNode, SequentialBatchNode
 from .nodes.web import WebSearchNode, WebFetchNode, RSSNode
 from .nodes.data import MemoryNode, SQLiteNode, VariableExtractorNode
+from .nodes.vector_memory import VectorMemoryNode
+from .nodes.scheduling import CronNode
 
 class NodeRegistry:
     def __init__(self):
@@ -39,6 +41,7 @@ class NodeRegistry:
         self.register(SubWorkflowNode)
         self.register(VariableExtractorNode)
         self.register(SequentialBatchNode)
+        self.register(VectorMemoryNode)
 
     def register(self, cls):
         if hasattr(cls, "NODE_TYPE"):
