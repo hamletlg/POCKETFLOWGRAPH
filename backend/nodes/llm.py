@@ -16,6 +16,7 @@ class LLMNode(BasePlatformNode, Node):
     """
     NODE_TYPE = "llm"
     DESCRIPTION = "Generate text using a local LLM (OpenAI compatible)"
+    INPUTS = ["default", "context"]
     PARAMS = {
         "api_base": "string",       # e.g. http://localhost:1234/v1
         "api_key": "string",        # usually 'lm-studio' or similar
@@ -50,13 +51,25 @@ class LLMNode(BasePlatformNode, Node):
         
         # Build Context from multiple sources
         context = {}
-        
-        # 1. "input": result of the predecessor node
         results = shared.get("results", {})
-        if results:
+        input_mapping = getattr(self, 'input_mapping', {})
+        if input_mapping:
+            # Map "default" handle to "input" variable in prompt
+            default_node_name = input_mapping.get("default")
+            if default_node_name and default_node_name in results:
+                context['input'] = results[default_node_name]
+            
+            # Map "context" handle to "context" variable in prompt
+            context_node_name = input_mapping.get("context")
+            if context_node_name and context_node_name in results:
+                context['context'] = results[context_node_name]
+
+        # 2. Fallback to "last result" logic if no mapping or missing keys
+        if 'input' not in context and results:
             last_key = list(results.keys())[-1]
             context['input'] = results[last_key]
-        else:
+        
+        if 'input' not in context:
             context['input'] = ""
         
         # 2. Session memory (in-memory)

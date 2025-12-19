@@ -18,7 +18,7 @@ def build_graph(workflow: Workflow, event_callback=None):
         pf_node = node_class()
         # Use .config to store static parameters
         pf_node.config = node_config.data 
-        pf_node.name = node_config.data.get("label", node_config.id)
+        pf_node.name = node_config.label or node_config.id
         # Inject metadata for visualization
         pf_node.id = node_config.id 
         pf_node.on_event = event_callback
@@ -38,13 +38,37 @@ def build_graph(workflow: Workflow, event_callback=None):
             if edge.sourceHandle and edge.sourceHandle.startswith("out-"):
                 edge_name = edge.sourceHandle[4:]  # Remove "out-" prefix
             
-            if edge_name == "default":
-                source_node >> target_node
-            else:
-                # Use named transition: source_node - "edge_name" >> target_node
-                (source_node - edge_name) >> target_node
+            # Record handle mapping for the target node
+            target_handle = edge.targetHandle or "in-default"
+            if target_handle.startswith("in-"):
+                target_handle = target_handle[3:] # Remove "in-" prefix
             
-            print(f"DEBUG: Connected {edge.source} --[{edge_name}]--> {edge.target}")
+            if not hasattr(target_node, 'input_mapping'):
+                target_node.input_mapping = {}
+            target_node.input_mapping[target_handle] = source_node.name
+
+            if edge_name == "default":
+                # Check if we already have a successor
+                if source_node.successors.get("default"):
+                    existing = source_node.successors["default"]
+                    if isinstance(existing, list):
+                        existing.append(target_node)
+                    else:
+                        source_node.successors["default"] = [existing, target_node]
+                else:
+                    source_node >> target_node
+            else:
+                # Same for named transitions
+                if source_node.successors.get(edge_name):
+                    existing = source_node.successors[edge_name]
+                    if isinstance(existing, list):
+                        existing.append(target_node)
+                    else:
+                        source_node.successors[edge_name] = [existing, target_node]
+                else:
+                    (source_node - edge_name) >> target_node
+            
+            pass
             
     # Find roots
     in_degree = {uid: 0 for uid in pf_nodes}

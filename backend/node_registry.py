@@ -13,6 +13,8 @@ from .nodes.vector_memory import VectorMemoryNode
 from .nodes.base import NodeSchema
 from .nodes.scheduling import CronNode
 
+# No changes needed here, just verifying.
+
 class NodeRegistry:
     def __init__(self):
         self.node_classes: Dict[str, Type[BasePlatformNode]] = {}

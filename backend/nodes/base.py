@@ -87,7 +87,7 @@ class BasePlatformNode:
         return None
 
 # Example wrapper
-class DebugNode(Node, BasePlatformNode):
+class DebugNode(BasePlatformNode, Node):
     NODE_TYPE = "debug"
     DESCRIPTION = "Print input to console"
     PARAMS = {"prefix": "string", "show_shared": "boolean"}
