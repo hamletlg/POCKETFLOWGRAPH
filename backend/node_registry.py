@@ -13,6 +13,7 @@ from .nodes.vector_memory import VectorMemoryNode
 from .nodes.base import NodeSchema
 from .nodes.scheduling import CronNode
 from .nodes.human import HumanInputNode
+from .nodes.script import ScriptNode
 
 # No changes needed here, just verifying.
 
@@ -47,6 +48,7 @@ class NodeRegistry:
         self.register(SequentialBatchNode)
         self.register(VectorMemoryNode)
         self.register(HumanInputNode)
+        self.register(ScriptNode)
         
         # Visual/Utility Nodes (Front-end only, dummies in backend)
         class NoteNode:

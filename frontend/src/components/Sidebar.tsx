@@ -21,7 +21,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
         "Web": ["web_search", "web_fetch", "rss_read"],
         "Data": ["memory", "sqlite", "variable_extractor", "vector_memory"],
         "Input/Output": ["file_read", "file_write", "pdf_read"],
-        "Scheduling": ["cron"]
+        "Scheduling": ["cron"],
+        "Advanced": ["script"]
     };
 
     // Group nodes
@@ -43,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
     }, {} as Record<string, NodeMetadata[]>);
 
     // Order categories
-    const orderedCategories = ["General", "Control Flow", "Scheduling", "AI", "Web", "Data", "Input/Output", "Other"];
+    const orderedCategories = ["General", "Control Flow", "Scheduling", "AI", "Web", "Data", "Input/Output", "Advanced", "Other"];
 
     return (
         <aside className="bg-gray-50 border-r border-gray-200 p-4 h-full overflow-y-auto flex flex-col w-full">
