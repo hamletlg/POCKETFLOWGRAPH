@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { NodeMetadata } from '../api/client';
 
 interface SidebarProps {
@@ -45,12 +45,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
 
     // Order categories
     const orderedCategories = ["General", "Control Flow", "Scheduling", "AI", "Web", "Data", "Input/Output", "Advanced", "Other"];
+    const [areAllCategoriesOpen, setAreAllCategoriesOpen] = useState(true);
 
     return (
         <aside className="bg-gray-50 border-r border-gray-200 p-4 h-full overflow-y-auto flex flex-col w-full">
             <div className="mb-4 flex-shrink-0">
                 <h2 className="text-xl font-bold text-gray-800">Nodes</h2>
                 <p className="text-xs text-gray-500">Drag to canvas</p>
+                <button
+                    onClick={() => setAreAllCategoriesOpen(!areAllCategoriesOpen)}
+                    className="mt-2 p-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
+                >
+                    {areAllCategoriesOpen ? "Collapse All" : "Expand All"}
+                </button>
             </div>
 
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
@@ -59,10 +66,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
                     if (!catNodes || catNodes.length === 0) return null;
 
                     return (
-                        <details key={cat} open className="group">
+                        <details key={cat} open={areAllCategoriesOpen} className="group">
                             <summary className="flex items-center justify-between font-semibold text-sm text-gray-700 cursor-pointer list-none bg-gray-100 p-2 rounded hover:bg-gray-200 transition mb-2">
                                 <span>{cat}</span>
-                                <span className="transform group-open:rotate-180 transition-transform text-xs">▼</span>
+                                <span className="transform group-open:rotate-180 transition-transform text-xs">
+                                    ▼
+                                </span>
                             </summary>
                             <div className="space-y-2 pl-1">
                                 {catNodes.map((node) => (
