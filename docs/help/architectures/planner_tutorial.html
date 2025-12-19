@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Planner Tutorial - PocketFlow</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+
+<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+    <a href="../index.html">← Back to Index</a>
+    <h1>Autonomous Planning</h1>
+    <p>Planners decompose a large, vague goal into a structured list of actionable steps.</p>
+
+    <h3>The Architecture</h3>
+    <ol>
+        <li><strong>Planner LLM</strong>: Outputs a list of sub-tasks in JSON.</li>
+        <li><strong>Variable Extractor</strong>: Pulls the <code>task_list</code> from the LLM output.</li>
+        <li><strong>Sequential Batch</strong>: Iterates through the <code>task_list</code>.</li>
+        <li><strong>Executor</strong>: Processes each task (e.g., using <code>Sub-Workflow</code>).</li>
+    </ol>
+
+    <h3>Key Benefits</h3>
+    <ul>
+        <li>Handles extremely large tasks that exceed the LLM's single-shot capability.</li>
+        <li>Allows for "Checkpoints" where progress can be saved.</li>
+    </ul>
+
+    <p><strong>Example Workflow:</strong> Check <code>autonomous_planner.json</code> in the examples folder.</p>
+</body>
+
+</html>

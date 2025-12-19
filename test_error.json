@@ -1,0 +1,23 @@
+{
+    "nodes": [
+        {
+            "id": "1",
+            "type": "start",
+            "label": "Start Flow",
+            "position": {"x": 0, "y": 0},
+            "data": {}
+        },
+        {
+            "id": "2",
+            "type": "file_read",
+            "label": "Read Non-existent File",
+            "position": {"x": 100, "y": 0},
+            "data": {
+                "path": "/nonexistent/file.txt"
+            }
+        }
+    ],
+    "edges": [
+        {"source": "1", "target": "2"}
+    ]
+}

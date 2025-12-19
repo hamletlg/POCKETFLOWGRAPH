@@ -10,6 +10,7 @@ from .nodes.control_flow import IfElseNode, SwitchNode, LoopNode, WhileNode, Mer
 from .nodes.web import WebSearchNode, WebFetchNode, RSSNode
 from .nodes.data import MemoryNode, SQLiteNode, VariableExtractorNode
 from .nodes.vector_memory import VectorMemoryNode
+from .nodes.base import NodeSchema
 from .nodes.scheduling import CronNode
 
 class NodeRegistry:
@@ -42,6 +43,30 @@ class NodeRegistry:
         self.register(VariableExtractorNode)
         self.register(SequentialBatchNode)
         self.register(VectorMemoryNode)
+        
+        # Visual/Utility Nodes (Front-end only, dummies in backend)
+        class NoteNode:
+            NODE_TYPE = "note"
+            DESCRIPTION = "A sticky note for documentation"
+            INPUTS = []
+            OUTPUTS = []
+            PARAMS = {}
+            @classmethod
+            def get_schema(cls):
+                return NodeSchema(type=cls.NODE_TYPE, description=cls.DESCRIPTION, inputs=cls.INPUTS, outputs=cls.OUTPUTS, params=cls.PARAMS)
+
+        class GroupNode:
+            NODE_TYPE = "group"
+            DESCRIPTION = "A labeled block to group nodes"
+            INPUTS = []
+            OUTPUTS = []
+            PARAMS = {}
+            @classmethod
+            def get_schema(cls):
+                return NodeSchema(type=cls.NODE_TYPE, description=cls.DESCRIPTION, inputs=cls.INPUTS, outputs=cls.OUTPUTS, params=cls.PARAMS)
+
+        self.register(NoteNode)
+        self.register(GroupNode)
 
     def register(self, cls):
         if hasattr(cls, "NODE_TYPE"):

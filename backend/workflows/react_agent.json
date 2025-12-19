@@ -1,0 +1,113 @@
+{
+    "nodes": [
+        {
+            "id": "node_start",
+            "type": "start",
+            "label": "Start",
+            "position": {
+                "x": 0,
+                "y": 0
+            },
+            "data": {
+                "initial_value": "Research the current weather in Tokyo and tell me if I should wear a coat."
+            }
+        },
+        {
+            "id": "node_reasoner",
+            "type": "llm",
+            "label": "Reasoner",
+            "position": {
+                "x": 0,
+                "y": 150
+            },
+            "data": {
+                "system_prompt": "You are a ReAct agent. You can 'search' or 'finish'. Output JSON: {\"action\": \"search\", \"query\": \"...\"} or {\"action\": \"finish\", \"answer\": \"...\"}.",
+                "user_prompt": "Task: {input}\nMemory: {search_results}\nThought:"
+            }
+        },
+        {
+            "id": "node_dispatcher",
+            "type": "json_dispatcher",
+            "label": "Action Dispatcher",
+            "position": {
+                "x": 0,
+                "y": 350
+            },
+            "data": {
+                "routing_key": "action",
+                "action_types": "search,finish"
+            }
+        },
+        {
+            "id": "node_search",
+            "type": "web_search",
+            "label": "Web Search",
+            "position": {
+                "x": -250,
+                "y": 500
+            },
+            "data": {
+                "query": "{query}"
+            }
+        },
+        {
+            "id": "node_mem_save",
+            "type": "memory",
+            "label": "Save Observations",
+            "position": {
+                "x": -250,
+                "y": 650
+            },
+            "data": {
+                "operation": "set",
+                "key": "search_results"
+            }
+        },
+        {
+            "id": "node_done",
+            "type": "debug",
+            "label": "Final Answer",
+            "position": {
+                "x": 250,
+                "y": 500
+            },
+            "data": {
+                "message": "{answer}"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "e1",
+            "source": "node_start",
+            "target": "node_reasoner"
+        },
+        {
+            "id": "e2",
+            "source": "node_reasoner",
+            "target": "node_dispatcher"
+        },
+        {
+            "id": "e3",
+            "source": "node_dispatcher",
+            "target": "node_search",
+            "sourceHandle": "search"
+        },
+        {
+            "id": "e4",
+            "source": "node_search",
+            "target": "node_mem_save"
+        },
+        {
+            "id": "e5",
+            "source": "node_mem_save",
+            "target": "node_reasoner"
+        },
+        {
+            "id": "e6",
+            "source": "node_dispatcher",
+            "target": "node_done",
+            "sourceHandle": "finish"
+        }
+    ]
+}

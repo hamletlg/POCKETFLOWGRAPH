@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReAct Agent Tutorial - PocketFlow</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+
+<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+    <a href="../index.html">← Back to Index</a>
+    <h1>ReAct: Reasoning + Acting</h1>
+    <p>A ReAct agent combines logical reasoning with tool use (actions) to solve complex problems.</p>
+
+    <h3>The Loop</h3>
+    <ol>
+        <li><strong>Reason</strong>: LLM thinks about the next step.</li>
+        <li><strong>Act</strong>: LLM chooses a tool (e.g., Web Search) via <code>JSONDispatcher</code>.</li>
+        <li><strong>Observe</strong>: The tool's output is fed back into memory.</li>
+        <li><strong>Repeat</strong>: The agent continues until the goal is met.</li>
+    </ol>
+
+    <h3>Key Nodes</h3>
+    <ul>
+        <li><strong>JSON Dispatcher</strong>: Routes the "Action" to the correct node.</li>
+        <li><strong>Web Search</strong>: Gathers external facts.</li>
+        <li><strong>Memory Node</strong>: Keeps track of the search results for the next reasoning step.</li>
+    </ul>
+
+    <p><strong>Example Workflow:</strong> Check <code>react_agent.json</code> in the examples folder.</p>
+</body>
+
+</html>

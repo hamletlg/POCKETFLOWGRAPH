@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduling & Core Nodes - PocketFlow</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+
+<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+    <a href="../index.html">← Back to Index</a>
+    <h1>Scheduling & Core Nodes</h1>
+
+    <section id="cron">
+        <h3>Cron Node</h3>
+        <p>Triggers a workflow on a schedule (e.g., <code>0 9 * * *</code> for every day at 9 AM).</p>
+    </section>
+
+    <section id="llm">
+        <h3>LLM Node</h3>
+        <p>The "brain" of your workflow. Supports prompt templates with variable injection: <code>{memory_key}</code>.
+        </p>
+    </section>
+
+    <section id="web_search">
+        <h3>Web Search</h3>
+        <p>Search the live web for information. Results are passed to the next node for processing.</p>
+    </section>
+
+    <section id="file_io">
+        <h3>File I/O (Read/Write)</h3>
+        <p>Interact with the local filesystem. Read text files, PDFs, or write logs and results.</p>
+    </section>
+</body>
+
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test Client</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .warning { background: #fff3cd; }
+        button { padding: 10px 20px; margin: 5px; }
+        #logs { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Test Client for PocketFlowGraph</h1>
+    
+    <div>
+        <button id="connectBtn">Connect WebSocket</button>
+        <button id="disconnectBtn">Disconnect</button>
+        <button id="clearBtn">Clear Logs</button>
+        <button id="testBtn">Test Workflow via API</button>
+    </div>
+    
+    <div id="status" class="log">Status: Disconnected</div>
+    
+    <h3>Connection Logs:</h3>
+    <div id="logs"></div>
+    
+    <script>
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        const statusDiv = document.getElementById('status');
+        const logsDiv = document.getElementById('logs');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.textContent = `[${timestamp}] ${message}`;
+            logsDiv.appendChild(logDiv);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        function updateStatus(connected) {
+            statusDiv.textContent = `Status: ${connected ? 'Connected' : 'Disconnected'}`;
+            statusDiv.className = `log ${connected ? 'success' : 'error'}`;
+        }
+        
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Already connected', 'warning');
+                return;
+            }
+            
+            log('Attempting to connect to ws://localhost:8000/api/ws...');
+            ws = new WebSocket('ws://localhost:8000/api/ws');
+            
+            ws.onopen = () => {
+                log('WebSocket connected successfully!', 'success');
+                updateStatus(true);
+                reconnectAttempts = 0;
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    log(`Received: ${JSON.stringify(msg)}`, 'success');
+                    
+                    // Highlight specific events
+                    if (msg.type === 'node_start') {
+                        log(`🟢 Node Started: ${msg.payload?.node_id}`, 'success');
+                    } else if (msg.type === 'node_end') {
+                        log(`🔵 Node Ended: ${msg.payload?.node_id}`, 'success');
+                    } else if (msg.type === 'node_error') {
+                        log(`🔴 Node Error: ${msg.payload?.node_id} - ${msg.payload?.error}`, 'error');
+                    } else if (msg.type === 'workflow_start') {
+                        log(`🚀 Workflow Started`, 'success');
+                    } else if (msg.type === 'workflow_end') {
+                        log(`✅ Workflow Completed`, 'success');
+                    }
+                } catch (e) {
+                    log(`Failed to parse message: ${event.data}`, 'error');
+                }
+            };
+            
+            ws.onclose = (event) => {
+                log(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`, 'warning');
+                updateStatus(false);
+                
+                // Auto-reconnect
+                if (event.code !== 1000 && reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    log(`Attempting to reconnect in 2 seconds... (${reconnectAttempts}/${maxReconnectAttempts})`, 'warning');
+                    setTimeout(connectWebSocket, 2000);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                log(`WebSocket error: ${error}`, 'error');
+            };
+        }
+        
+        function disconnectWebSocket() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                log('WebSocket disconnected manually', 'warning');
+                updateStatus(false);
+            }
+        }
+        
+        function clearLogs() {
+            logsDiv.innerHTML = '';
+        }
+        
+        async function testWorkflow() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('Please connect WebSocket first', 'warning');
+                return;
+            }
+            
+            log('Testing workflow execution via API...', 'info');
+            
+            const testWorkflow = {
+                nodes: [
+                    {id: "start1", type: "start", label: "Start", position: {x: 0, y: 0}, data: {}},
+                    {id: "delay1", type: "delay", label: "Delay 2s", position: {x: 100, y: 0}, data: {"seconds": 2.0, "message": "Test Delay"}}
+                ],
+                edges: [{source: "start1", target: "delay1"}]
+            };
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/workflow/run', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testWorkflow)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`Workflow completed successfully: ${JSON.stringify(result)}`, 'success');
+                } else {
+                    const error = await response.text();
+                    log(`Workflow failed: ${error}`, 'error');
+                }
+            } catch (e) {
+                log(`API request failed: ${e}`, 'error');
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('connectBtn').addEventListener('click', connectWebSocket);
+        document.getElementById('disconnectBtn').addEventListener('click', disconnectWebSocket);
+        document.getElementById('clearBtn').addEventListener('click', clearLogs);
+        document.getElementById('testBtn').addEventListener('click', testWorkflow);
+        
+        // Auto-connect on page load
+        window.addEventListener('load', () => {
+            log('WebSocket Test Client loaded. Click "Connect WebSocket" to start.', 'info');
+        });
+    </script>
+</body>
+</html>

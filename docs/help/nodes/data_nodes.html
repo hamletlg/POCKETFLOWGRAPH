@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data & Memory Nodes - PocketFlow</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+
+<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+    <a href="../index.html">← Back to Index</a>
+    <h1>Data & Memory Nodes</h1>
+
+    <section id="memory">
+        <h3>Memory Node</h3>
+        <p>Sets or gets values from the workflow's shared memory. Use <code>persistent=True</code> to save data to disk
+            between runs.</p>
+    </section>
+
+    <section id="variable_extractor">
+        <h3>Variable Extractor</h3>
+        <p>Extracts specific fields from a previous node's output (usually LLM JSON) and saves them into memory
+            variables.</p>
+    </section>
+
+    <section id="vector_memory">
+        <h3>Vector Memory (RAG)</h3>
+        <p>Store and search technical content using semantic embeddings. Useful for giving agents "long-term" knowledge
+            or access to documentation.</p>
+    </section>
+
+    <section id="sqlite">
+        <h3>SQLite Node</h3>
+        <p>Run SQL queries against a local database. Use for structured data persistence.</p>
+    </section>
+</body>
+
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System 2 Reasoning Tutorial - PocketFlow</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+
+<body style="padding: 2rem; max-width: 800px; margin: 0 auto;">
+    <a href="../index.html">← Back to Index</a>
+    <h1>System 2 Reasoning / Reflexion</h1>
+    <p>System 2 thinking involves slowing down the agent to critique and refine its own output before finalizing it.</p>
+
+    <h3>The Architecture</h3>
+    <ol>
+        <li><strong>Generator</strong>: An LLM node that produces the initial draft.</li>
+        <li><strong>Critic</strong>: A second LLM node prompted to look for flaws in the draft.</li>
+        <li><strong>Variable Extractor</strong>: Parses the Critic's feedback (e.g., getting a "quality_score").</li>
+        <li><strong>While Loop</strong>: Checks if <code>quality_score < 8</code>. If so, it loops back to the
+            Generator.</li>
+    </ol>
+
+    <h3>Benefits</h3>
+    <ul>
+        <li>Higher quality output for complex tasks.</li>
+        <li>Reduced hallucinations through self-verification.</li>
+        <li>Mimics human-like "deliberate" thinking.</li>
+    </ul>
+
+    <p><strong>Example Workflow:</strong> Check <code>reasoning_loop.json</code> in the examples folder.</p>
+</body>
+
+</html>

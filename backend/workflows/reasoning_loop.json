@@ -5,8 +5,8 @@
             "type": "start",
             "label": "Start",
             "position": {
-                "x": 100,
-                "y": 250
+                "x": 250,
+                "y": 0
             },
             "data": {
                 "initial_value": "Explain quantum entanglement to a 5-year old."
@@ -17,8 +17,8 @@
             "type": "memory",
             "label": "Store Objective",
             "position": {
-                "x": 300,
-                "y": 250
+                "x": 250,
+                "y": 100
             },
             "data": {
                 "operation": "set",
@@ -31,8 +31,8 @@
             "type": "llm",
             "label": "Generator",
             "position": {
-                "x": 550,
-                "y": 250
+                "x": 250,
+                "y": 200
             },
             "data": {
                 "user_prompt": "Goal: {goal}\nPrevious Critique: {critique}\n\nDraft a perfect explanation:",
@@ -44,8 +44,8 @@
             "type": "llm",
             "label": "Critic",
             "position": {
-                "x": 550,
-                "y": 450
+                "x": 250,
+                "y": 400
             },
             "data": {
                 "user_prompt": "Evaluate this explanation for a 5-year old:\n{input}\n\nOutput JSON with 'score' (1-10) and 'critique' (text).",
@@ -57,8 +57,8 @@
             "type": "variable_extractor",
             "label": "Extract Feedback",
             "position": {
-                "x": 300,
-                "y": 450
+                "x": 250,
+                "y": 600
             },
             "data": {
                 "mapping": "{\"score\": \"score\", \"critique\": \"critique\"}"
@@ -69,8 +69,8 @@
             "type": "while_loop",
             "label": "Quality Check",
             "position": {
-                "x": 100,
-                "y": 450
+                "x": 250,
+                "y": 750
             },
             "data": {
                 "condition": "int(score) < 8",
@@ -79,55 +79,52 @@
         },
         {
             "id": "node_final",
-            "type": "memory",
+            "type": "debug",
             "label": "Final Result",
             "position": {
-                "x": 100,
-                "y": 650
+                "x": 550,
+                "y": 750
             },
-            "data": {
-                "operation": "get",
-                "key": "goal"
-            }
+            "data": {}
         }
     ],
     "edges": [
         {
+            "id": "e1",
             "source": "node_start",
-            "target": "node_mem_init",
-            "id": "e1"
+            "target": "node_mem_init"
         },
         {
+            "id": "e2",
             "source": "node_mem_init",
-            "target": "node_generator",
-            "id": "e2"
+            "target": "node_generator"
         },
         {
+            "id": "e3",
             "source": "node_generator",
-            "target": "node_critic",
-            "id": "e3"
+            "target": "node_critic"
         },
         {
+            "id": "e4",
             "source": "node_critic",
-            "target": "node_extractor",
-            "id": "e4"
+            "target": "node_extractor"
         },
         {
+            "id": "e5",
             "source": "node_extractor",
-            "target": "node_while",
-            "id": "e5"
+            "target": "node_while"
         },
         {
+            "id": "e6",
             "source": "node_while",
             "target": "node_generator",
-            "sourceHandle": "continue",
-            "id": "e6"
+            "sourceHandle": "continue"
         },
         {
+            "id": "e7",
             "source": "node_while",
             "target": "node_final",
-            "sourceHandle": "done",
-            "id": "e7"
+            "sourceHandle": "done"
         }
     ]
 }

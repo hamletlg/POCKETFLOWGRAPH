@@ -15,7 +15,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ nodes }) => {
 
     // Category Definitions
     const categories: Record<string, string[]> = {
-        "General": ["start", "debug"],
+        "General": ["start", "debug", "note", "group"],
         "Control Flow": ["if_else", "switch", "loop", "while_loop", "merge", "try_catch", "delay", "json_dispatcher", "sub_workflow", "sequential_batch"],
         "AI": ["llm"],
         "Web": ["web_search", "web_fetch", "rss_read"],

@@ -7,11 +7,12 @@ import ReactFlow, {
     Controls,
     Background,
 } from 'reactflow';
-import type { Connection, Edge, Node, NodeChange } from 'reactflow';
+import type { Connection, Node, NodeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Sidebar } from './Sidebar';
 import { PropertiesPanel } from './PropertiesPanel';
 import CustomNode from './CustomNode';
+import NoteNode from './NoteNode';
 import { saveWorkflow, loadWorkflow, listWorkflows, runWorkflow, deleteWorkflow, exportWorkflow } from '../api/client';
 import type { NodeMetadata } from '../api/client';
 
@@ -138,7 +139,10 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const [isDirty, setIsDirty] = useState(false);
     const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
 
-    const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+    const nodeTypes = useMemo(() => ({
+        custom: CustomNode,
+        note: NoteNode
+    }), []);
 
     // State for Execution Visualization
     const [executingNodes, setExecutingNodes] = useState<Set<string>>(new Set());
@@ -244,15 +248,26 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
             const newNode: Node = {
                 id: getId(),
-                type: 'custom',
+                type: type === 'note' ? 'note' : (type === 'group' ? 'group' : 'custom'),
                 position,
                 data: {
-                    label: type,
+                    label: type === 'note' ? '' : type,
                     type: type,
                     inputs: nodeMeta?.inputs || [],
                     outputs: nodeMeta?.outputs || [],
-                    params: {} // Initialize params as empty object for values
+                    params: {}, // Initialize params as empty object for values
+                    onChange: type === 'note' ? (val: string) => {
+                        setNodes((nds) => nds.map((n) => {
+                            if (n.id === newNode.id) {
+                                return { ...n, data: { ...n.data, label: val } };
+                            }
+                            return n;
+                        }));
+                        setIsDirty(true);
+                    } : undefined
                 },
+                // Groups need specific styling
+                style: type === 'group' ? { width: 400, height: 300, backgroundColor: 'rgba(243, 244, 246, 0.4)', borderRadius: '12px', border: '2px dashed #9ca3af' } : {},
             };
 
             setNodes((nds) => nds.concat(newNode));
@@ -692,7 +707,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                                     // Transform back to ReactFlow format
                                     const newNodes = wf.nodes.map((n: any) => ({
                                         id: n.id,
-                                        type: 'custom',
+                                        type: n.type === 'note' ? 'note' : (n.type === 'group' ? 'group' : 'custom'),
                                         position: n.position,
                                         data: {
                                             label: n.label,
@@ -701,8 +716,18 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                                             // We need to re-fetch metadata or store it? 
                                             // ideally we persist it, but for now let's hope it maps back
                                             inputs: availableNodes.find(x => x.type === n.type)?.inputs || [],
-                                            outputs: availableNodes.find(x => x.type === n.type)?.outputs || []
-                                        }
+                                            outputs: availableNodes.find(x => x.type === n.type)?.outputs || [],
+                                            onChange: n.type === 'note' ? (val: string) => {
+                                                setNodes((nds) => nds.map((node) => {
+                                                    if (node.id === n.id) {
+                                                        return { ...node, data: { ...node.data, label: val } };
+                                                    }
+                                                    return node;
+                                                }));
+                                                setIsDirty(true);
+                                            } : undefined
+                                        },
+                                        style: n.style || {}
                                     }));
 
                                     const newEdges = wf.edges.map((e: any) => ({

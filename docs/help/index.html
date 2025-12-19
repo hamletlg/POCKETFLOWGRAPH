@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketFlow Documentation</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        body { padding: 2rem; max-width: 900px; margin: 0 auto; }
+        .hero { text-align: center; margin-bottom: 3rem; }
+        .card { padding: 1.5rem; border-radius: 8px; border: 1px solid #ddd; height: 100%; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); border-color: #007bff; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        a { text-decoration: none; color: inherit; }
+    </style>
+</head>
+<body>
+    <header class="hero">
+        <h1>PocketFlow Node Documentation</h1>
+        <p>Your guide to building autonomous agentic workflows.</p>
+    </header>
+
+    <main>
+        <section>
+            <h2>Node Categories</h2>
+            <div class="grid">
+                <a href="nodes/control_flow.html">
+                    <div class="card">
+                        <h3>Control Flow</h3>
+                        <p>Loops, If/Else, JSON Dispatchers, and Sub-Workflows.</p>
+                    </div>
+                </a>
+                <a href="nodes/data_nodes.html">
+                    <div class="card">
+                        <h3>Data & Memory</h3>
+                        <p>Persistent storage, SQLite, and Vector Memory (RAG).</p>
+                    </div>
+                </a>
+                <a href="nodes/scheduling_nodes.html">
+                    <div class="card">
+                        <h3>Scheduling</h3>
+                        <p>Cron jobs and time-based automation.</p>
+                    </div>
+                </a>
+                <a href="nodes/other_nodes.html">
+                    <div class="card">
+                        <h3>Core & Tools</h3>
+                        <p>LLM, File I/O, and Web Search nodes.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section style="margin-top: 3rem;">
+            <h2>Agentic Architectures</h2>
+            <div class="grid">
+                <a href="architectures/react_tutorial.html">
+                    <div class="card">
+                        <h3>ReAct Agent</h3>
+                        <p>Combine reasoning and acting in a single loop.</p>
+                    </div>
+                </a>
+                <a href="architectures/planner_tutorial.html">
+                    <div class="card">
+                        <h3>Autonomous Planner</h3>
+                        <p>Break goals into sub-tasks automatically.</p>
+                    </div>
+                </a>
+                <a href="architectures/system2_tutorial.html">
+                    <div class="card">
+                        <h3>System 2 Reasoning</h3>
+                        <p>Implement self-critique and reflection loops.</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer style="margin-top: 4rem; text-align: center; border-top: 1px solid #eee; padding-top: 1rem;">
+        <p><small>PocketFlow Graph Platform &copy; 2025</small></p>
+    </footer>
+</body>
+</html>
