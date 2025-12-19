@@ -7,9 +7,14 @@ class FileReadNode(BasePlatformNode, Node):
     DESCRIPTION = "Read content from a file"
     PARAMS = {"path": "string"}
     
-    def exec(self, prep_res):
+    def prep(self, shared):
         cfg = getattr(self, 'config', {})
-        path = cfg.get("path", "")
+        return {
+            "path": cfg.get("path", "")
+        }
+
+    def exec(self, prep_res):
+        path = prep_res.get("path", "")
         if not path:
             return "Error: No path provided"
         
@@ -24,27 +29,45 @@ class FileWriteNode(BasePlatformNode, Node):
     DESCRIPTION = "Write content to a file"
     PARAMS = {"path": "string", "content": "string", "mode": "string"} # mode: w or a
     
-    def exec(self, prep_res):
+    def prep(self, shared):
         cfg = getattr(self, 'config', {})
-        path = cfg.get("path", "")
-        mode = cfg.get("mode", "w")
         
-        # content can come from params OR from previous node (prep_res)
-        content_param = cfg.get("content", "")
-        
-        # If prep_res is valid string and not empty, use it.
-        # Otherwise use content param.
-        content_to_write = content_param
-        if prep_res and isinstance(prep_res, str):
-             # Strategy: if param is empty, use input. 
-             # Or maybe append? let's stick to: if input exists, it overrides empty param.
-             if not content_param:
-                 content_to_write = prep_res
+        # Get input from previous node (PocketFlow convention)
+        input_data = None
+        results = shared.get("results", {})
+        if results:
+            # Get the last result added to shared
+            last_key = list(results.keys())[-1]
+            input_data = results[last_key]
+
+        return {
+            "path": cfg.get("path", ""),
+            "mode": cfg.get("mode", "w"),
+            "content_param": cfg.get("content", ""),
+            "input_data": input_data
+        }
+
+    def exec(self, prep_res):
+        path = prep_res.get("path", "")
+        mode = prep_res.get("mode", "w")
+        content_param = prep_res.get("content_param", "")
+        input_data = prep_res.get("input_data")
+
+        # Prioritize input_data if it exists, otherwise use content_param
+        content_to_write = input_data if input_data is not None else content_param
         
         if not path:
             return "Error: No path provided"
             
         try:
+            # Handle non-string data
+            if not isinstance(content_to_write, str):
+                import json
+                try:
+                    content_to_write = json.dumps(content_to_write, indent=2)
+                except:
+                    content_to_write = str(content_to_write)
+
             with open(path, mode, encoding="utf-8") as f:
                 f.write(content_to_write)
             return f"Successfully wrote to {path}"
