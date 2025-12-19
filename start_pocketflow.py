@@ -1,9 +1,9 @@
-
 import subprocess
 import os
 import signal
 import sys
 import time
+from config import ROOT_DIR
 
 def start_services():
     print("🚀 Starting PocketFlow Platform...")
@@ -27,8 +27,9 @@ def start_services():
     else:
         print(f"⚠️ VENV not found at {venv_python}, using system python: {python_exe}")
 
+    backend_path = ROOT_DIR / 'backend' / 'main.py'
     backend_process = subprocess.Popen(
-        [python_exe, "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
+        [python_exe, "-m", "uvicorn", str(backend_path), "--host", "0.0.0.0", "--port", "8000", "--reload"],
         cwd=root_dir,
     )
     
@@ -38,8 +39,9 @@ def start_services():
     # 3. Start Frontend
     print("🎨 Starting Frontend (Vite)...")
     try:
+        frontend_path = ROOT_DIR / 'frontend' / 'start.js'
         frontend_process = subprocess.Popen(
-            ["npm", "run", "dev"],
+            ["node", str(frontend_path)],
             cwd=frontend_dir
         )
     except FileNotFoundError:

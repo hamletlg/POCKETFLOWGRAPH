@@ -1,6 +1,7 @@
 import os
 from .base import BasePlatformNode
 from pocketflow import Node
+from config import ROOT_DIR
 
 
 class FileReadNode(BasePlatformNode, Node):
@@ -18,6 +19,7 @@ class FileReadNode(BasePlatformNode, Node):
             return "Error: No path provided"
 
         try:
+            path = ROOT_DIR / path
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
@@ -81,6 +83,7 @@ class FileWriteNode(BasePlatformNode, Node):
                 except:
                     content_to_write = str(content_to_write)
 
+            path = ROOT_DIR / path
             with open(path, mode, encoding="utf-8") as f:
                 f.write(content_to_write)
             return f"Successfully wrote to {path}"

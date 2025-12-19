@@ -3,6 +3,7 @@ import os
 import json
 from .base import BasePlatformNode
 from pocketflow import Node
+from config import MEMORY_FILE
 
 
 class MemoryNode(BasePlatformNode, Node):
@@ -40,7 +41,7 @@ class MemoryNode(BasePlatformNode, Node):
     }
 
     # File path for persistent storage
-    MEMORY_FILE = ".pocketflow_memory.json"
+    # MEMORY_FILE = os.path.join(os.getcwd(), ".pocketflow_memory.json")
 
     def prep(self, shared):
         cfg = getattr(self, "config", {})
@@ -190,9 +191,9 @@ class MemoryNode(BasePlatformNode, Node):
 
     def _load_persistent(self) -> dict:
         """Load persistent memory from JSON file."""
-        if os.path.exists(self.MEMORY_FILE):
+        if os.path.exists(MEMORY_FILE):
             try:
-                with open(self.MEMORY_FILE, "r", encoding="utf-8") as f:
+                with open(MEMORY_FILE, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, IOError):
                 return {}
@@ -201,7 +202,7 @@ class MemoryNode(BasePlatformNode, Node):
     def _save_persistent(self, data: dict):
         """Save persistent memory to JSON file."""
         try:
-            with open(self.MEMORY_FILE, "w", encoding="utf-8") as f:
+            with open(MEMORY_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except IOError as e:
             print(f"Error saving persistent memory: {e}")
