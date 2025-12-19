@@ -261,3 +261,91 @@ class SQLiteNode(BasePlatformNode, Node):
             super().post(shared, prep_res, exec_res.get("error", "Query failed"))
         return None
 
+
+class VariableExtractorNode(BasePlatformNode, Node):
+    """Extracts specific fields from LLM/JSON output and stores them in memory."""
+    NODE_TYPE = "variable_extractor"
+    DESCRIPTION = "Extract fields from JSON/String and save to memory"
+    INPUTS = ["default"]
+    OUTPUTS = ["default"]
+    PARAMS = {
+        "mapping": "string" # e.g. {"name": "user_name", "id": "user_id"}
+    }
+
+    def prep(self, shared):
+        if not hasattr(self, 'name'):
+            self.name = self.NODE_TYPE
+        results = shared.get("results", {})
+        input_data = None
+        if results:
+            last_key = list(results.keys())[-1]
+            input_data = results[last_key]
+        
+        return {"input_data": input_data, "shared": shared}
+
+    def exec(self, prep_res):
+        cfg = getattr(self, 'config', {})
+        input_data = prep_res["input_data"]
+        shared = prep_res["shared"]
+        mapping_str = cfg.get("mapping", "{}")
+        
+        if not input_data:
+            return "Warning: No input data to extract from"
+            
+        # Parse mapping
+        try:
+            mapping = json.loads(mapping_str)
+        except:
+            # Try comma separated: key:var, key2:var2
+            mapping = {}
+            for part in mapping_str.split(","):
+                if ":" in part:
+                    k, v = part.split(":", 1)
+                    mapping[k.strip()] = v.strip()
+        
+        if not mapping:
+            return "Warning: No valid mapping provided"
+
+        # Parse input as JSON if possible
+        data = {}
+        if isinstance(input_data, dict):
+            data = input_data
+        elif isinstance(input_data, str):
+            try:
+                # Clean markdown
+                clean_input = input_data.strip()
+                if clean_input.startswith("```json"):
+                    clean_input = clean_input[7:-3].strip()
+                elif clean_input.startswith("```"):
+                    clean_input = clean_input[3:-3].strip()
+                data = json.loads(clean_input)
+            except:
+                data = {}
+
+        results_extracted = {}
+        if "memory" not in shared:
+            shared["memory"] = {}
+
+        for source_key, target_key in mapping.items():
+            # Handle simple dot notation (up to 1 level)
+            if "." in source_key:
+                parts = source_key.split(".")
+                val = data
+                for p in parts:
+                    if isinstance(val, dict):
+                        val = val.get(p)
+                    else:
+                        val = None
+                        break
+            else:
+                val = data.get(source_key) if data else None
+            
+            if val is not None:
+                shared["memory"][target_key] = val
+                results_extracted[target_key] = val
+        
+        return results_extracted
+
+    def post(self, shared, prep_res, exec_res):
+        super().post(shared, prep_res, exec_res)
+        return None

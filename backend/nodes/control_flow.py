@@ -384,6 +384,8 @@ class JSONDispatcherNode(BasePlatformNode, Node):
     }
 
     def prep(self, shared):
+        if not hasattr(self, 'name'):
+            self.name = self.NODE_TYPE
         results = shared.get("results", {})
         input_val = None
         if results:
@@ -445,6 +447,8 @@ class SubWorkflowNode(BasePlatformNode, Node):
     }
 
     def prep(self, shared):
+        if not hasattr(self, "name"):
+            self.name = self.NODE_TYPE
         cfg = getattr(self, 'config', {})
         return {
             "workflow_name": cfg.get("workflow_name", ""),
@@ -506,3 +510,83 @@ class SubWorkflowNode(BasePlatformNode, Node):
     def post(self, shared, prep_res, exec_res):
         super().post(shared, prep_res, exec_res)
         return None
+
+class SequentialBatchNode(BasePlatformNode, Node):
+    """Iterates through a list (plan) sequentially. Useful for LLM-generated task lists."""
+    NODE_TYPE = "sequential_batch"
+    DESCRIPTION = "Execute tasks in a list sequentially"
+    INPUTS = ["default"]
+    OUTPUTS = ["each", "done"]
+    PARAMS = {
+        "items_key": "string",       # Key in memory or 'input'
+        "current_item_var": "string" # Var name for current item (default: 'current_task')
+    }
+
+    def prep(self, shared):
+        if not hasattr(self, "name"):
+            self.name = self.NODE_TYPE
+        cfg = getattr(self, 'config', {})
+        node_id = getattr(self, 'id', 'batch')
+        batch_key = f"_batch_{node_id}"
+        
+        # Initialize if needed
+        if batch_key not in shared:
+            items_key = cfg.get("items_key", "").strip()
+            
+            # 1. Try to get items from memory
+            items = shared.get("memory", {}).get(items_key)
+            
+            # 2. Try to get items from previous node
+            if items is None:
+                results = shared.get("results", {})
+                if results:
+                    last_key = list(results.keys())[-1]
+                    input_val = results[last_key]
+                    if isinstance(input_val, list):
+                        items = input_val
+                    elif isinstance(input_val, dict) and items_key in input_val:
+                        items = input_val[items_key]
+                    elif items_key == "input" or not items_key:
+                        items = input_val if isinstance(input_val, list) else []
+            
+            if not isinstance(items, list):
+                items = []
+                
+            shared[batch_key] = {
+                "items": items,
+                "index": 0,
+                "current_item_var": cfg.get("current_item_var", "current_task")
+            }
+            
+        return shared[batch_key]
+
+    def exec(self, prep_res):
+        items = prep_res.get("items", [])
+        index = prep_res.get("index", 0)
+        
+        if index < len(items):
+            return {"continue": True, "item": items[index], "index": index}
+        return {"continue": False}
+
+    def post(self, shared, prep_res, exec_res):
+        node_id = getattr(self, 'id', 'batch')
+        batch_key = f"_batch_{node_id}"
+        var_name = prep_res.get("current_item_var", "current_task")
+        
+        if exec_res.get("continue"):
+            if "memory" not in shared:
+                shared["memory"] = {}
+            shared["memory"][var_name] = exec_res["item"]
+            shared["memory"][f"{var_name}_index"] = exec_res["index"]
+            
+            # Increment index for next time
+            shared[batch_key]["index"] += 1
+            
+            super().post(shared, prep_res, exec_res["item"])
+            return "each"
+        else:
+            # Done
+            if batch_key in shared:
+                del shared[batch_key]
+            super().post(shared, prep_res, "batch_complete")
+            return "done"
