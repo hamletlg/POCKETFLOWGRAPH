@@ -1,0 +1,133 @@
+{
+    "nodes": [
+        {
+            "id": "node_start",
+            "type": "start",
+            "label": "Start",
+            "position": {
+                "x": 100,
+                "y": 250
+            },
+            "data": {
+                "initial_value": "Explain quantum entanglement to a 5-year old."
+            }
+        },
+        {
+            "id": "node_mem_init",
+            "type": "memory",
+            "label": "Store Objective",
+            "position": {
+                "x": 300,
+                "y": 250
+            },
+            "data": {
+                "operation": "set",
+                "key": "goal",
+                "persistent": false
+            }
+        },
+        {
+            "id": "node_generator",
+            "type": "llm",
+            "label": "Generator",
+            "position": {
+                "x": 550,
+                "y": 250
+            },
+            "data": {
+                "user_prompt": "Goal: {goal}\nPrevious Critique: {critique}\n\nDraft a perfect explanation:",
+                "system_prompt": "You are an expert educator. If there is a critique, improve your explanation accordingly."
+            }
+        },
+        {
+            "id": "node_critic",
+            "type": "llm",
+            "label": "Critic",
+            "position": {
+                "x": 550,
+                "y": 450
+            },
+            "data": {
+                "user_prompt": "Evaluate this explanation for a 5-year old:\n{input}\n\nOutput JSON with 'score' (1-10) and 'critique' (text).",
+                "system_prompt": "You are a strict grading assistant. Only output valid JSON."
+            }
+        },
+        {
+            "id": "node_extractor",
+            "type": "variable_extractor",
+            "label": "Extract Feedback",
+            "position": {
+                "x": 300,
+                "y": 450
+            },
+            "data": {
+                "mapping": "{\"score\": \"score\", \"critique\": \"critique\"}"
+            }
+        },
+        {
+            "id": "node_while",
+            "type": "while_loop",
+            "label": "Quality Check",
+            "position": {
+                "x": 100,
+                "y": 450
+            },
+            "data": {
+                "condition": "int(score) < 8",
+                "max_iterations": 3
+            }
+        },
+        {
+            "id": "node_final",
+            "type": "memory",
+            "label": "Final Result",
+            "position": {
+                "x": 100,
+                "y": 650
+            },
+            "data": {
+                "operation": "get",
+                "key": "goal"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "source": "node_start",
+            "target": "node_mem_init",
+            "id": "e1"
+        },
+        {
+            "source": "node_mem_init",
+            "target": "node_generator",
+            "id": "e2"
+        },
+        {
+            "source": "node_generator",
+            "target": "node_critic",
+            "id": "e3"
+        },
+        {
+            "source": "node_critic",
+            "target": "node_extractor",
+            "id": "e4"
+        },
+        {
+            "source": "node_extractor",
+            "target": "node_while",
+            "id": "e5"
+        },
+        {
+            "source": "node_while",
+            "target": "node_generator",
+            "sourceHandle": "continue",
+            "id": "e6"
+        },
+        {
+            "source": "node_while",
+            "target": "node_final",
+            "sourceHandle": "done",
+            "id": "e7"
+        }
+    ]
+}

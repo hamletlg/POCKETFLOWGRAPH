@@ -15,7 +15,7 @@ dist/
 .idea/
 
 # PocketFlow specific
-backend/workflows/*.json 
+# backend/workflows/*.json 
 # Wait, maybe user wants to commit workflows? 
 # The user said "save the work till now". 
 # Usually user data isn't committed, but initial demo workflows might be useful.
