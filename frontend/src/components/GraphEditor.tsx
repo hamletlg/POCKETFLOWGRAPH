@@ -15,91 +15,10 @@ import CustomNode from './CustomNode';
 import NoteNode from './NoteNode';
 import ButtonEdge from './ButtonEdge';
 import { HumanInputModal } from './HumanInputModal';
-import { saveWorkflow, loadWorkflow, listWorkflows, runWorkflow, deleteWorkflow, exportWorkflow } from '../api/client';
+import { saveWorkflow, loadWorkflow, listWorkflows, runWorkflow, exportWorkflow } from '../api/client';
 import type { NodeMetadata } from '../api/client';
-
-const WorkflowList = ({ onLoad, refreshTrigger }: { onLoad: (name: string) => void, refreshTrigger: number }) => {
-    const [workflows, setWorkflows] = useState<string[]>([]);
-
-    // Refresh list helper
-    const refresh = () => listWorkflows().then(setWorkflows).catch(console.error);
-
-    useEffect(() => {
-        refresh();
-    }, [refreshTrigger]);
-
-    // Delete Modal Logic;
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [workflowToDelete, setWorkflowToDelete] = useState<string | null>(null);
-
-    const handleDeleteClick = (e: React.MouseEvent, name: string) => {
-        e.stopPropagation();
-        setWorkflowToDelete(name);
-        setIsDeleteModalOpen(true);
-    };
-
-    const confirmDelete = async () => {
-        if (!workflowToDelete) return;
-
-        try {
-            await deleteWorkflow(workflowToDelete);
-            await refresh(); // Refresh the list after deletion
-            setIsDeleteModalOpen(false);
-            setWorkflowToDelete(null);
-            // Optional: alert("Deleted " + workflowToDelete); 
-        } catch (err) {
-            alert("Failed to delete: " + err);
-        }
-    };
-
-    return (
-        <div className="max-h-60 overflow-y-auto">
-            {/* Delete Confirmation Modal */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                    <div className="bg-white p-6 rounded-2xl shadow-xl w-80 transform transition-all scale-100 opacity-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Workflow?</h3>
-                        <p className="text-sm text-gray-600 mb-6">
-                            Are you sure you want to delete <strong>{workflowToDelete}</strong>? This cannot be undone.
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setIsDeleteModalOpen(false); }}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); confirmDelete(); }}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
-                            >
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {workflows.length === 0 && <div className="p-2 text-sm text-gray-500">No saved workflows</div>}
-            {workflows.map(w => (
-                <div
-                    key={w}
-                    className="flex items-center justify-between p-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-700 border-b border-gray-100 last:border-0 group/item"
-                    onClick={() => onLoad(w)}
-                >
-                    <span className="flex-1 truncate">{w}</span>
-                    <button
-                        onClick={(e) => handleDeleteClick(e, w)}
-                        className="opacity-0 group-hover/item:opacity-100 text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded transition-all"
-                        title="Delete Workflow"
-                    >
-                        ✕
-                    </button>
-                </div>
-            ))}
-        </div>
-    );
-};
+import { MenuBar } from './MenuBar';
+import { fetchWorkspaces, fetchActiveWorkspace, setActiveWorkspace } from '../api/workspace';
 
 interface GraphEditorProps {
     availableNodes: NodeMetadata[];
@@ -108,7 +27,7 @@ interface GraphEditorProps {
 const initialNodes: Node[] = [
     {
         id: '1',
-        type: 'custom', // Use our custom node
+        type: 'custom',
         data: {
             label: 'Start Flow',
             type: 'start',
@@ -124,7 +43,6 @@ export const GraphEditor: React.FC<GraphEditorProps> = (props) => {
     return <GraphEditorContent {...props} />;
 };
 
-// Moving Content content here to allow hooks
 const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [nodes, setNodes, onNodesChangeFromHook] = useNodesState(initialNodes);
@@ -136,6 +54,51 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const [isDirty, setIsDirty] = useState(false);
     const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
     const [humanInputRequest, setHumanInputRequest] = useState<any>(null);
+
+    // Workspace State
+    const [workspaces, setWorkspaces] = useState<string[]>([]);
+    const [activeWorkspace, setActiveWorkspaceState] = useState<string>("default");
+    const [availableWorkflows, setAvailableWorkflows] = useState<string[]>([]);
+
+    useEffect(() => {
+        loadWorkspaceData();
+    }, []);
+
+    const loadWorkspaceData = async () => {
+        try {
+            const wsList = await fetchWorkspaces();
+            setWorkspaces(wsList);
+            const active = await fetchActiveWorkspace();
+            setActiveWorkspaceState(active);
+            refreshWorkflows();
+        } catch (e) {
+            console.error("Failed to load workspaces", e);
+        }
+    };
+
+    const refreshWorkflows = async () => {
+        try {
+            const wfs = await listWorkflows();
+            setAvailableWorkflows(wfs);
+        } catch (e) {
+            console.error("Failed to list workflows", e);
+        }
+    };
+
+    const handleSwitchWorkspace = async (name: string) => {
+        try {
+            await setActiveWorkspace(name);
+            setActiveWorkspaceState(name);
+            // Refresh workflows for new workspace
+            refreshWorkflows();
+            // Optionally clear editor
+            if (confirm("Switching workspace. Clear current editor?")) {
+                resetWorkflow();
+            }
+        } catch (e) {
+            alert("Failed to switch workspace: " + e);
+        }
+    };
 
     const nodeTypes = useMemo(() => ({
         custom: CustomNode,
@@ -175,7 +138,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                 } else if (msg.type === 'workflow_end') {
                     // Clear all
                     setExecutingNodes(new Set());
-                    alert("Workflow Execution Completed!");
+                    // alert("Workflow Execution Completed!"); // Removed annoying alert
                 } else if (msg.type === 'workflow_error') {
                     setExecutingNodes(new Set());
                     alert("Workflow Error: " + msg.payload);
@@ -194,19 +157,14 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
     // Update nodes styling based on execution
     useEffect(() => {
-        if (executingNodes.size === 0) {
-            // Optionally reset styles when nothing is executing
-            // but usually we want them to stay as-is or clear.
-            // Let's just avoid unnecessary setNodes calls.
-            return;
-        }
+        if (executingNodes.size === 0) return;
         setNodes((nds) =>
             nds.map((node) => {
                 const isExecuting = executingNodes.has(node.id);
                 const currentBorder = node.style?.border;
                 const newBorder = isExecuting ? '2px solid #3b82f6' : '1px solid #777';
 
-                if (currentBorder === newBorder) return node; // Optimization
+                if (currentBorder === newBorder) return node;
 
                 return {
                     ...node,
@@ -225,7 +183,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const onNodesChange = useCallback(
         (changes: NodeChange[]) => {
             setIsDirty(true);
-            onNodesChangeFromHook(changes); // Call the original handler
+            onNodesChangeFromHook(changes);
         },
         [onNodesChangeFromHook]
     );
@@ -265,7 +223,6 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                 return;
             }
 
-            // Find full metadata
             const nodeMeta = availableNodes.find(n => n.type === type);
 
             const position = reactFlowInstance.screenToFlowPosition({
@@ -282,7 +239,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                     type: type,
                     inputs: nodeMeta?.inputs || [],
                     outputs: nodeMeta?.outputs || [],
-                    params: {}, // Initialize params as empty object for values
+                    params: {},
                     onChange: type === 'note' ? (val: string) => {
                         setNodes((nds) => nds.map((n) => {
                             if (n.id === newNode.id) {
@@ -293,7 +250,6 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                         setIsDirty(true);
                     } : undefined
                 },
-                // Groups need specific styling
                 style: type === 'group' ? { width: 400, height: 300, backgroundColor: 'rgba(243, 244, 246, 0.4)', borderRadius: '12px', border: '2px dashed #9ca3af' } : {},
             };
 
@@ -333,7 +289,6 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     }, [nodes, selectedNodeId]);
 
     const handleRun = async () => {
-        console.log("Handle Run Clicked");
         setExecutionStatus("Running...");
         setExecutionResult(null);
 
@@ -353,12 +308,8 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
             }))
         };
 
-        // Debug Log
-        console.log("Submitting Workflow:", JSON.stringify(workflow, null, 2));
-
         try {
             const result = await runWorkflow(workflow);
-            console.log("Workflow Result:", result);
             setExecutionStatus("Completed");
             setExecutionResult(JSON.stringify(result, null, 2));
         } catch (error) {
@@ -371,6 +322,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const startNode = nodes.find(n => n.data.type === 'start');
     const showOverlay = startNode?.data.params?.show_overlay !== false;
 
+    // Sidebar & Properties Logic
     const [sidebarWidth, setSidebarWidth] = useState(260);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isResizing, setIsResizing] = useState(false);
@@ -378,7 +330,6 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const [isPropertiesOpen, setIsPropertiesOpen] = useState(true);
     const [isResizingProperties, setIsResizingProperties] = useState(false);
 
-    // Sidebar Logic
     const sidebarRef = useRef<HTMLDivElement>(null);
     const startResizing = useCallback(() => setIsResizing(true), []);
     const stopResizing = useCallback(() => setIsResizing(false), []);
@@ -408,9 +359,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-    // Properties Logic
     const propertiesRef = useRef<HTMLDivElement>(null);
-
     const startResizingProperties = useCallback(() => setIsResizingProperties(true), []);
     const stopResizingProperties = useCallback(() => setIsResizingProperties(false), []);
 
@@ -439,22 +388,71 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
 
     const toggleProperties = () => setIsPropertiesOpen(!isPropertiesOpen);
 
-    // Save Modal Logic
-    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-    const [saveName, setSaveName] = useState("");
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const saveInputRef = useRef<HTMLInputElement>(null);
+    // --- MENU BAR HANDLERS ---
 
-    useEffect(() => {
-        if (isSaveModalOpen && saveInputRef.current) {
-            saveInputRef.current.focus();
+    const resetWorkflow = () => {
+        setNodes(initialNodes);
+        setEdges([]);
+        setCurrentWorkflowName(null);
+        setIsDirty(false);
+    };
+
+    const handleNewProject = () => {
+        if (isDirty) {
+            if (confirm("You have unsaved changes. Discard?")) {
+                resetWorkflow();
+            }
+        } else {
+            resetWorkflow();
         }
-    }, [isSaveModalOpen]);
+    };
 
-    const handleSaveConfirm = async () => {
-        console.log("handleSaveConfirm triggered. Name:", saveName);
-        if (!saveName) {
-            alert("Please enter a name");
+    const handleLoadProject = async (name: string) => {
+        try {
+            const wf = await loadWorkflow(name);
+            const newNodes = wf.nodes.map((n: any) => ({
+                id: n.id,
+                type: n.type === 'note' ? 'note' : (n.type === 'group' ? 'group' : 'custom'),
+                position: n.position,
+                data: {
+                    label: n.label,
+                    type: n.type,
+                    params: n.data,
+                    inputs: availableNodes.find(x => x.type === n.type)?.inputs || [],
+                    outputs: availableNodes.find(x => x.type === n.type)?.outputs || [],
+                    onChange: n.type === 'note' ? (val: string) => {
+                        setNodes((nds) => nds.map((node) => {
+                            if (node.id === n.id) {
+                                return { ...node, data: { ...node.data, label: val } };
+                            }
+                            return node;
+                        }));
+                        setIsDirty(true);
+                    } : undefined
+                },
+                style: n.style || {}
+            }));
+
+            const newEdges = wf.edges.map((e: any) => ({
+                id: `e${e.source}-${e.target}`,
+                source: e.source,
+                target: e.target,
+                sourceHandle: e.sourceHandle,
+                targetHandle: e.targetHandle
+            }));
+
+            setNodes(newNodes);
+            setEdges(newEdges);
+            setCurrentWorkflowName(name);
+            setIsDirty(false);
+        } catch (e) {
+            alert("Error loading: " + e);
+        }
+    };
+
+    const handleSaveProject = async () => {
+        if (!currentWorkflowName) {
+            handleSaveAsProject(prompt("Enter project name:") || "");
             return;
         }
 
@@ -473,46 +471,52 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                 targetHandle: e.targetHandle
             }))
         };
-        console.log("Workflow object created:", workflow);
 
         try {
-            console.log("Calling saveWorkflow API...");
-            await saveWorkflow(saveName, workflow);
-            console.log("API call success");
-            setCurrentWorkflowName(saveName);
-            setIsSaveModalOpen(false);
-            setSaveName(""); // Reset
-            setRefreshTrigger(prev => prev + 1); // Trigger list refresh
-            setIsDirty(false); // Reset dirty state
-            alert("Saved successfully!");
+            await saveWorkflow(currentWorkflowName, workflow);
+            refreshWorkflows();
+            setIsDirty(false);
+            alert("Saved!");
         } catch (e) {
-            console.error("Save error:", e);
             alert("Error saving: " + e);
         }
     };
 
-    // New Workflow Logic
-    const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+    const handleSaveAsProject = async (name: string) => {
+        if (!name) return;
 
-    const resetWorkflow = () => {
-        setNodes(initialNodes);
-        setEdges([]);
-        setSaveName("");
-        setCurrentWorkflowName(null);
-        setIsDirty(false);
-    };
+        const workflow = {
+            nodes: nodes.map(n => ({
+                id: n.id,
+                type: n.data.type || 'start',
+                label: n.data.label,
+                position: n.position,
+                data: n.data.params || {}
+            })),
+            edges: edges.map(e => ({
+                source: e.source,
+                target: e.target,
+                sourceHandle: e.sourceHandle,
+                targetHandle: e.targetHandle
+            }))
+        };
 
-    const handleNewClick = () => {
-        if (isDirty) {
-            setIsNewModalOpen(true);
-        } else {
-            resetWorkflow();
+        try {
+            await saveWorkflow(name, workflow);
+            setCurrentWorkflowName(name);
+            refreshWorkflows();
+            setIsDirty(false);
+            alert("Saved as " + name);
+        } catch (e) {
+            alert("Error saving: " + e);
         }
     };
 
-    const confirmNew = () => {
+    const handleCloseProject = () => {
+        if (isDirty) {
+            if (!confirm("You have unsaved changes. Close anyway?")) return;
+        }
         resetWorkflow();
-        setIsNewModalOpen(false);
     };
 
     // Export Logic
@@ -520,7 +524,7 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     const [exportName, setExportName] = useState("");
 
     const handleExportClick = () => {
-        setExportName(saveName || "workflow");
+        setExportName(currentWorkflowName || "workflow");
         setIsExportModalOpen(true);
     };
 
@@ -558,328 +562,210 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
     };
 
     return (
-        <div className="flex h-screen w-screen overflow-hidden">
-            {/* Human Input Modal */}
-            {humanInputRequest && (
-                <HumanInputModal
-                    requestId={humanInputRequest.request_id}
-                    prompt={humanInputRequest.prompt}
-                    fields={humanInputRequest.fields}
-                    contextData={humanInputRequest.data}
-                    onClose={() => setHumanInputRequest(null)}
-                />
-            )}
+        <div className="flex flex-col h-screen w-screen overflow-hidden">
 
-            {/* New Workflow Confirmation Modal */}
-            {isNewModalOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                    <div className="bg-white p-6 rounded-2xl shadow-xl w-80 transform transition-all scale-100 opacity-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Discard Changes?</h3>
-                        <p className="text-sm text-gray-600 mb-6">
-                            You have unsaved changes. Creating a new workflow will discard them.
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setIsNewModalOpen(false); }}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); confirmNew(); }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-                            >
-                                Continue
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* MENU BAR */}
+            <MenuBar
+                currentWorkflowName={currentWorkflowName}
+                isDirty={isDirty}
+                workspaces={workspaces}
+                activeWorkspace={activeWorkspace}
+                onSwitchWorkspace={handleSwitchWorkspace}
+                onRefreshWorkspaces={loadWorkspaceData}
+                onNewProject={handleNewProject}
+                onLoadProject={handleLoadProject}
+                onSaveProject={handleSaveProject}
+                onSaveAsProject={handleSaveAsProject}
+                onCloseProject={handleCloseProject}
+                availableWorkflows={availableWorkflows}
+                onRefreshWorkflows={refreshWorkflows}
+            />
 
-            {/* Export Modal */}
-            {isExportModalOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-                    <div className="bg-white p-6 rounded-2xl shadow-xl w-96 transform transition-all scale-100 opacity-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Export to Python</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                            Enter a filename for your Python script.
-                        </p>
-                        <input
-                            type="text"
-                            className="w-full border border-gray-300 p-3 rounded-lg mb-6 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                            placeholder="filename.py"
-                            value={exportName}
-                            onChange={e => setExportName(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && confirmExport()}
-                            autoFocus
-                        />
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setIsExportModalOpen(false); }}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); confirmExport(); }}
-                                className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
-                            >
-                                Download
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* MAIN CONTENT */}
+            <div className="flex flex-1 relative overflow-hidden">
 
-            {/* Save Modal */}
-            <div className={`absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300 ease-out ${isSaveModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-                <div className={`bg-white p-6 rounded-2xl shadow-2xl w-96 transform transition-all duration-300 ease-out ${isSaveModalOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-90 translate-y-4 opacity-0'}`}>
-                    <h2 className="text-xl font-bold mb-4 text-gray-800">Save Workflow</h2>
-                    <input
-                        ref={saveInputRef}
-                        type="text"
-                        className="w-full border border-gray-300 p-3 rounded-lg mb-6 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        placeholder="Workflow Name (e.g. my-flow)"
-                        value={saveName}
-                        onChange={e => setSaveName(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleSaveConfirm()}
+                {/* Human Input Modal */}
+                {humanInputRequest && (
+                    <HumanInputModal
+                        requestId={humanInputRequest.request_id}
+                        prompt={humanInputRequest.prompt}
+                        fields={humanInputRequest.fields}
+                        contextData={humanInputRequest.data}
+                        onClose={() => setHumanInputRequest(null)}
                     />
-                    <div className="flex justify-end gap-3">
-                        <button
-                            onClick={() => setIsSaveModalOpen(false)}
-                            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSaveConfirm}
-                            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
-                        >
-                            Save
-                        </button>
-                    </div>
-                </div>
-            </div>
+                )}
 
-            {/* Resizable Sidebar Wrapper */}
-            <div
-                ref={sidebarRef}
-                className={`relative flex-shrink-0 bg-gray-50 border-r border-gray-200 transition-all duration-300 ease-in-out ${isSidebarOpen ? '' : 'w-0 overflow-hidden'}`}
-                style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
-            >
-                <div className="h-full overflow-hidden" style={{ width: sidebarWidth }}>
-                    <Sidebar nodes={availableNodes} />
-                </div>
-
-                {/* Drag Handle (Sidebar) */}
-                {isSidebarOpen && (
-                    <div
-                        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 z-50 group transition-colors"
-                        onMouseDown={startResizing}
-                    >
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-gray-200 rounded-l flex items-center justify-center cursor-pointer hover:bg-blue-400 text-gray-500 hover:text-white shadow-md -mr-1"
-                            onClick={(e) => { e.stopPropagation(); toggleSidebar(); }}>
-                            ‹
+                {/* Export Modal */}
+                {isExportModalOpen && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-white p-6 rounded-2xl shadow-xl w-96 transform transition-all scale-100 opacity-100">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4">Export to Python</h3>
+                            <input
+                                type="text"
+                                className="w-full border border-gray-300 p-3 rounded-lg mb-6 focus:ring-2 focus:ring-blue-500 outline-none"
+                                placeholder="filename.py"
+                                value={exportName}
+                                onChange={e => setExportName(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && confirmExport()}
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setIsExportModalOpen(false); }}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); confirmExport(); }}
+                                    className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
+                                >
+                                    Download
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
-            </div>
 
-            {/* Collapsed Sidebar Toggle Button */}
-            {!isSidebarOpen && (
-                <div className="absolute left-0 top-1/2 z-50">
-                    <button
-                        onClick={toggleSidebar}
-                        className="bg-white border border-gray-300 shadow-md p-1 rounded-r text-gray-600 hover:text-blue-600 hover:bg-gray-50"
-                    >
-                        ›
-                    </button>
-                </div>
-            )}
-
-            {/* Main Canvas Area */}
-            <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
-                {/* Workflow Name Header */}
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-3">
-                    <div className="bg-white/80 backdrop-blur px-4 py-2 rounded-xl shadow-sm border border-gray-200 flex items-center gap-2">
-                        <span className="text-gray-400 font-medium">Workflow:</span>
-                        <span className="text-gray-800 font-bold">
-                            {currentWorkflowName || 'Untitled Workflow'}
-                        </span>
-                        {isDirty && (
-                            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" title="Unsaved changes"></span>
-                        )}
-                    </div>
-                </div>
-
-                <div className="absolute top-4 right-4 z-10 flex gap-2">
-                    <button
-                        onClick={handleNewClick}
-                        className="bg-purple-600 text-white px-4 py-2 rounded shadow hover:bg-purple-700 transition"
-                    >
-                        New
-                    </button>
-                    <button
-                        onClick={handleExportClick}
-                        className="bg-gray-600 text-white px-4 py-2 rounded shadow hover:bg-gray-700 transition"
-                    >
-                        Export Py
-                    </button>
-                    <button
-                        onClick={() => setIsSaveModalOpen(true)}
-                        className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition"
-                    >
-                        Save
-                    </button>
-
-                    <div className="relative group">
-                        <button
-                            className="bg-yellow-600 text-white px-4 py-2 rounded shadow hover:bg-yellow-700 transition"
-                        >
-                            Load
-                        </button>
-                        <div className="absolute right-0 mt-0 w-48 bg-white rounded shadow-xl hidden group-hover:block border border-gray-200 overflow-hidden z-50">
-                            <WorkflowList refreshTrigger={refreshTrigger} onLoad={async (name) => {
-                                try {
-                                    const wf = await loadWorkflow(name);
-                                    // Transform back to ReactFlow format
-                                    const newNodes = wf.nodes.map((n: any) => ({
-                                        id: n.id,
-                                        type: n.type === 'note' ? 'note' : (n.type === 'group' ? 'group' : 'custom'),
-                                        position: n.position,
-                                        data: {
-                                            label: n.label,
-                                            type: n.type,
-                                            params: n.data,
-                                            // We need to re-fetch metadata or store it? 
-                                            // ideally we persist it, but for now let's hope it maps back
-                                            inputs: availableNodes.find(x => x.type === n.type)?.inputs || [],
-                                            outputs: availableNodes.find(x => x.type === n.type)?.outputs || [],
-                                            onChange: n.type === 'note' ? (val: string) => {
-                                                setNodes((nds) => nds.map((node) => {
-                                                    if (node.id === n.id) {
-                                                        return { ...node, data: { ...node.data, label: val } };
-                                                    }
-                                                    return node;
-                                                }));
-                                                setIsDirty(true);
-                                            } : undefined
-                                        },
-                                        style: n.style || {}
-                                    }));
-
-                                    const newEdges = wf.edges.map((e: any) => ({
-                                        id: `e${e.source}-${e.target}`,
-                                        source: e.source,
-                                        target: e.target,
-                                        sourceHandle: e.sourceHandle,
-                                        targetHandle: e.targetHandle
-                                    }));
-
-                                    setNodes(newNodes);
-                                    setEdges(newEdges);
-                                    setCurrentWorkflowName(name);
-                                    setIsDirty(false); // Reset dirty state on load
-                                } catch (e) {
-                                    alert("Error loading: " + e);
-                                }
-                            }} />
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handleRun}
-                        className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
-                        disabled={executionStatus === "Running..."}
-                    >
-                        {executionStatus === "Running..." ? "Running..." : "Run"}
-                    </button>
-                </div>
-
-                {/* Conditional Result Overlay */}
-                {executionResult && showOverlay && (
-                    <div className="absolute bottom-4 left-4 right-4 z-10 bg-white p-4 border rounded shadow-lg max-h-48 overflow-auto">
-                        <h3 className="font-bold text-sm mb-2">Execution Result:</h3>
-                        <pre className="text-xs text-gray-800 whitespace-pre-wrap">{executionResult}</pre>
-                        <button
-                            onClick={() => setExecutionResult(null)}
-                            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                        >
-                            x
-                        </button>
-                    </div>
-                )}
-
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={(changes) => {
-                        onNodesChange(changes);
-                        // Only mark dirty if there are actual changes
-                        if (changes.length > 0) setIsDirty(true);
-                    }}
-                    onEdgesChange={(changes) => {
-                        onEdgesChange(changes);
-                        if (changes.length > 0) setIsDirty(true);
-                    }}
-                    onConnect={onConnect}
-                    onEdgeUpdate={onEdgeUpdate}
-                    nodeTypes={nodeTypes}
-                    edgeTypes={edgeTypes}
-                    defaultEdgeOptions={defaultEdgeOptions}
-                    onInit={setReactFlowInstance}
-                    onDrop={onDrop}
-                    onDragOver={onDragOver}
-                    onNodeClick={onNodeClick}
-                    onPaneClick={onPaneClick}
-                    fitView
-                    snapToGrid
-                    snapGrid={[15, 15]}
+                {/* Sidebar */}
+                <div
+                    ref={sidebarRef}
+                    className={`relative flex-shrink-0 bg-gray-50 border-r border-gray-200 transition-all duration-300 ease-in-out ${isSidebarOpen ? '' : 'w-0 overflow-hidden'}`}
+                    style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
                 >
-                    <Controls />
-                    <Background color="#aaa" gap={16} />
-                </ReactFlow>
-            </div>
+                    <div className="h-full overflow-hidden" style={{ width: sidebarWidth }}>
+                        <Sidebar nodes={availableNodes} />
+                    </div>
 
-            {/* Collapsed Properties Toggle Button */}
-            {!isPropertiesOpen && (
-                <div className="absolute right-0 top-1/2 z-50">
-                    <button
-                        onClick={toggleProperties}
-                        className="bg-white border border-gray-300 shadow-md p-1 rounded-l text-gray-600 hover:text-blue-600 hover:bg-gray-50"
-                    >
-                        ‹
-                    </button>
-                </div>
-            )}
-
-            {/* Resizable Properties Panel Wrapper */}
-            <div
-                ref={propertiesRef}
-                className={`relative flex-shrink-0 bg-white border-l border-gray-200 transition-all duration-300 ease-in-out ${isPropertiesOpen ? '' : 'w-0 overflow-hidden'}`}
-                style={{ width: isPropertiesOpen ? propertiesPanelWidth : 0 }}
-            >
-                {/* Drag Handle (Properties) - On Left Side */}
-                {isPropertiesOpen && (
-                    <div
-                        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 z-50 group transition-colors"
-                        onMouseDown={startResizingProperties}
-                    >
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-gray-200 rounded-r flex items-center justify-center cursor-pointer hover:bg-blue-400 text-gray-500 hover:text-white shadow-md -ml-1"
-                            onClick={(e) => { e.stopPropagation(); toggleProperties(); }}>
-                            ›
+                    {/* Drag Handle */}
+                    {isSidebarOpen && (
+                        <div
+                            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 z-50 group transition-colors"
+                            onMouseDown={startResizing}
+                        >
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-gray-200 rounded-l flex items-center justify-center cursor-pointer hover:bg-blue-400 text-gray-500 hover:text-white shadow-md -mr-1"
+                                onClick={(e) => { e.stopPropagation(); toggleSidebar(); }}>
+                                ‹
+                            </div>
                         </div>
+                    )}
+                </div>
+
+                {/* Sidebar Toggle */}
+                {!isSidebarOpen && (
+                    <div className="absolute left-0 top-1/2 z-50">
+                        <button
+                            onClick={toggleSidebar}
+                            className="bg-white border border-gray-300 shadow-md p-1 rounded-r text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+                        >
+                            ›
+                        </button>
                     </div>
                 )}
 
-                <div className="h-full overflow-hidden" style={{ width: propertiesPanelWidth }}>
-                    <PropertiesPanel
-                        selectedNode={selectedNode}
-                        onUpdateNodeData={updateNodeData}
-                        availableNodes={availableNodes}
-                        onDeleteNode={deleteNode}
-                    />
+                {/* ReactFlow Area */}
+                <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
+                    {/* Floating Toolbar (Right) */}
+                    <div className="absolute top-4 right-4 z-10 flex gap-2">
+                        <button
+                            onClick={handleExportClick}
+                            className="bg-gray-600 text-white px-4 py-2 rounded shadow hover:bg-gray-700 transition"
+                        >
+                            Export Py
+                        </button>
+                        <button
+                            onClick={handleRun}
+                            className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
+                            disabled={executionStatus === "Running..."}
+                        >
+                            {executionStatus === "Running..." ? "Running..." : "Run"}
+                        </button>
+                    </div>
+
+                    {/* Conditional Result Overlay */}
+                    {executionResult && showOverlay && (
+                        <div className="absolute bottom-4 left-4 right-4 z-10 bg-white p-4 border rounded shadow-lg max-h-48 overflow-auto">
+                            <h3 className="font-bold text-sm mb-2">Execution Result:</h3>
+                            <pre className="text-xs text-gray-800 whitespace-pre-wrap">{executionResult}</pre>
+                            <button
+                                onClick={() => setExecutionResult(null)}
+                                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                            >
+                                x
+                            </button>
+                        </div>
+                    )}
+
+                    <ReactFlow
+                        nodes={nodes}
+                        edges={edges}
+                        onNodesChange={(changes) => {
+                            onNodesChange(changes);
+                            if (changes.length > 0) setIsDirty(true);
+                        }}
+                        onEdgesChange={(changes) => {
+                            onEdgesChange(changes);
+                            if (changes.length > 0) setIsDirty(true);
+                        }}
+                        onConnect={onConnect}
+                        onEdgeUpdate={onEdgeUpdate}
+                        nodeTypes={nodeTypes}
+                        edgeTypes={edgeTypes}
+                        defaultEdgeOptions={defaultEdgeOptions}
+                        onInit={setReactFlowInstance}
+                        onDrop={onDrop}
+                        onDragOver={onDragOver}
+                        onNodeClick={onNodeClick}
+                        onPaneClick={onPaneClick}
+                        fitView
+                        snapToGrid
+                        snapGrid={[15, 15]}
+                    >
+                        <Controls />
+                        <Background color="#aaa" gap={16} />
+                    </ReactFlow>
                 </div>
+
+                {/* Properties Panel Toggle */}
+                {!isPropertiesOpen && (
+                    <div className="absolute right-0 top-1/2 z-50">
+                        <button
+                            onClick={toggleProperties}
+                            className="bg-white border border-gray-300 shadow-md p-1 rounded-l text-gray-600 hover:text-blue-600 hover:bg-gray-50"
+                        >
+                            ‹
+                        </button>
+                    </div>
+                )}
+
+                {/* Properties Panel */}
+                <div
+                    ref={propertiesRef}
+                    className={`relative flex-shrink-0 bg-white border-l border-gray-200 transition-all duration-300 ease-in-out ${isPropertiesOpen ? '' : 'w-0 overflow-hidden'}`}
+                    style={{ width: isPropertiesOpen ? propertiesPanelWidth : 0 }}
+                >
+                    {isPropertiesOpen && (
+                        <div
+                            className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 z-50 group transition-colors"
+                            onMouseDown={startResizingProperties}
+                        >
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-8 bg-gray-200 rounded-r flex items-center justify-center cursor-pointer hover:bg-blue-400 text-gray-500 hover:text-white shadow-md -ml-1"
+                                onClick={(e) => { e.stopPropagation(); toggleProperties(); }}>
+                                ›
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="h-full overflow-hidden" style={{ width: propertiesPanelWidth }}>
+                        <PropertiesPanel
+                            selectedNode={selectedNode}
+                            onUpdateNodeData={updateNodeData}
+                            availableNodes={availableNodes}
+                            onDeleteNode={deleteNode}
+                        />
+                    </div>
+                </div>
+
             </div>
         </div>
     );
