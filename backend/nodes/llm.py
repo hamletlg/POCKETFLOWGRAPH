@@ -3,7 +3,7 @@ from pocketflow import Node
 import openai
 import os
 import json
-from config import MEMORY_FILE
+import config
 
 
 class LLMNode(BasePlatformNode, Node):
@@ -23,6 +23,7 @@ class LLMNode(BasePlatformNode, Node):
         "model": "string",          # e.g. "llama-3.2"
         "system_prompt": "string",
         "user_prompt": "string",    # can use {input}, {memory_key}
+        "image": "string",          # Optional: Image path or URL or {variable}
         "temperature": "float",
         "use_history": "boolean",   # Enable chat history
         "conversation_id": "string", # Unique ID for conversation (default: "default")
@@ -33,14 +34,14 @@ class LLMNode(BasePlatformNode, Node):
     def prep(self, shared):
         cfg = getattr(self, 'config', {})
         
-        # LLM Configuration
-        default_base = shared.get("llm_base_url", "http://localhost:1234/v1")
-        val = cfg.get("api_base")
-        self.api_base = val if val else default_base
-        self.api_key = cfg.get("api_key", "lm-studio")
-        self.model = cfg.get("model", "local-model")
+        # LLM Configuration Hierarchy: Node > Shared > App Default
+        self.api_base = cfg.get("api_base") or shared.get("llm_base_url") or config.LLM_BASE_URL
+        self.api_key = cfg.get("api_key") or shared.get("llm_api_key") or config.LLM_API_KEY
+        self.model = cfg.get("model") or shared.get("llm_model") or config.LLM_MODEL
+        
         self.system_prompt = cfg.get("system_prompt", "You are a helpful assistant.")
         self.user_prompt_template = cfg.get("user_prompt", "{input}")
+        self.image_template = cfg.get("image", "") # Optional image input
         self.temperature = float(cfg.get("temperature", 0.7))
         self.time_out = int(cfg.get("time_out", 600))
         
@@ -81,6 +82,11 @@ class LLMNode(BasePlatformNode, Node):
             "shared": shared
         }
 
+    def _encode_image(self, image_path):
+        import base64
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+
     def exec(self, prep_res):
         context = prep_res["context"]
         history = prep_res["history"]
@@ -89,11 +95,17 @@ class LLMNode(BasePlatformNode, Node):
         
         # Build user content with variable substitution
         user_content = self.user_prompt_template
+        image_input = self.image_template
+        
         for key, value in context.items():
             # Handle complex types
             if isinstance(value, (dict, list)):
                 value = json.dumps(value, ensure_ascii=False)
-            user_content = user_content.replace(f"{{{key}}}", str(value))
+            
+            replacement = str(value)
+            user_content = user_content.replace(f"{{{key}}}", replacement)
+            if image_input:
+                image_input = image_input.replace(f"{{{key}}}", replacement)
         
         print(f"DEBUG LLMNode: final_content='{user_content[:100]}...'")
         
@@ -108,7 +120,34 @@ class LLMNode(BasePlatformNode, Node):
                 messages.extend(history)
             
             # Add current user message
-            messages.append({"role": "user", "content": user_content})
+            if image_input and (image_input.startswith("http") or os.path.exists(image_input)):
+                # Multi-modal payload
+                content_payload = [{"type": "text", "text": user_content}]
+                
+                if image_input.startswith("http"):
+                    image_url = image_input
+                    print(f"Using image URL: {image_url}")
+                    content_payload.append({
+                        "type": "image_url",
+                        "image_url": {"url": image_url}
+                    })
+                else: 
+                    # Local file
+                    try:
+                        base64_image = self._encode_image(image_input)
+                        print(f"Encoded local image: {image_input}")
+                        content_payload.append({
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
+                        })
+                    except Exception as img_err:
+                        print(f"Failed to encode image: {img_err}")
+                        # Fallback to just text if image fails
+                
+                messages.append({"role": "user", "content": content_payload})
+            else:
+                # Standard text payload
+                messages.append({"role": "user", "content": user_content})
             
             print(f"Sending request to {self.api_base} with model {self.model} ({len(messages)} messages)")
             
@@ -140,6 +179,9 @@ class LLMNode(BasePlatformNode, Node):
         # Update chat history if enabled
         if self.use_history and exec_res.get("success"):
             user_msg = exec_res.get("user_message", "")
+            # Note: We currently only save text in history for simplicity
+            # To support full multimodal history, we'd need to store the structured list.
+            # providing text-only representation for now.
             self._save_history(
                 self.conversation_id,
                 user_msg,
@@ -153,9 +195,9 @@ class LLMNode(BasePlatformNode, Node):
 
     def _load_persistent(self) -> dict:
         """Load persistent memory from JSON file."""
-        if os.path.exists(MEMORY_FILE):
+        if os.path.exists(config.MEMORY_FILE):
             try:
-                with open(MEMORY_FILE, "r", encoding="utf-8") as f:
+                with open(config.MEMORY_FILE, "r", encoding="utf-8") as f:
                     return json.load(f)
             except (json.JSONDecodeError, IOError):
                 return {}
@@ -187,7 +229,7 @@ class LLMNode(BasePlatformNode, Node):
         
         # Save back to file
         try:
-            with open(MEMORY_FILE, "w", encoding="utf-8") as f:
+            with open(config.MEMORY_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except IOError as e:
             print(f"Error saving chat history: {e}")
