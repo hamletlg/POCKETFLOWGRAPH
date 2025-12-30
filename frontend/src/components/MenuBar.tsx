@@ -63,7 +63,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
     return (
         <div className="bg-gray-800 text-white p-2 flex items-center justify-between shadow-md">
             <div className="flex items-center space-x-4">
-                <span className="font-bold text-lg">PocketFlow</span>
+                <span className="font-bold text-lg">PocketFlowGraph</span>
 
                 {/* Workspace Selector */}
                 <div className="relative">

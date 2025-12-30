@@ -45,7 +45,8 @@ class FileWriteNode(BasePlatformNode, Node):
 
     def prep(self, shared):
         cfg = getattr(self, "config", {})
-
+        content_param = cfg.get("content", "")
+        
         # Get input from previous node (PocketFlow convention)
         input_data = None
         results = shared.get("results", {})
@@ -54,10 +55,29 @@ class FileWriteNode(BasePlatformNode, Node):
             last_key = list(results.keys())[-1]
             input_data = results[last_key]
 
+        # Add variable substitution from memory and results
+        if content_param:
+            # 1. support {input} placeholder
+            if input_data is not None:
+                content_param = content_param.replace("{input}", str(input_data))
+                
+            # 2. Check shared['memory']
+            if "memory" in shared:
+                for key, value in shared["memory"].items():
+                    # Robust substitution: try with stripped key inside {}
+                    content_param = content_param.replace(f"{{{key}}}", str(value))
+                    content_param = content_param.replace(f"{{{key.strip()}}}", str(value))
+                    
+            # 3. Check shared['results'] (by node name/label)
+            if "results" in shared:
+                for key, value in shared["results"].items():
+                    content_param = content_param.replace(f"{{{key}}}", str(value))
+                    content_param = content_param.replace(f"{{{key.strip()}}}", str(value))
+
         return {
             "path": cfg.get("path", ""),
             "mode": cfg.get("mode", "w"),
-            "content_param": cfg.get("content", ""),
+            "content_param": content_param,
             "input_data": input_data,
         }
 
@@ -67,8 +87,13 @@ class FileWriteNode(BasePlatformNode, Node):
         content_param = prep_res.get("content_param", "")
         input_data = prep_res.get("input_data")
 
-        # Prioritize input_data if it exists, otherwise use content_param
-        content_to_write = input_data if input_data is not None else content_param
+        # If content_param was provided (even if empty string after replacement?), 
+        # use it. Otherwise fall back to input_data.
+        # Check if 'content' was explicitly set in config
+        cfg = getattr(self, "config", {})
+        has_content_cfg = "content" in cfg and cfg["content"]
+        
+        content_to_write = content_param if has_content_cfg else (input_data if input_data is not None else content_param)
 
         if not path:
             return "Error: No path provided"

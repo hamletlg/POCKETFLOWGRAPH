@@ -99,15 +99,25 @@ class BasePlatformNode:
         print(f"DEBUG: Executing post for {getattr(self, 'name', 'Unknown')}")
         if "results" not in shared:
             shared["results"] = {}
+        
         # Use node name or ID if available.
         # PocketFlow Nodes have .name attribute.
-        shared["results"][self.name] = exec_res
-        # Also store by ID if possible?
+        # CRITICAL: In Python 3.7+, updating a key doesn't change its order.
+        # We must delete it first to ensure it moves to the end of the dict,
+        # otherwise successors using "last_key" will see stale data in loops.
+        name = self.name
+        if name in shared["results"]:
+            del shared["results"][name]
+        shared["results"][name] = exec_res
+        
+        # Also store by ID if possible
         node_id = getattr(self, "id", None)
         if node_id:
+            if node_id in shared["results"]:
+                del shared["results"][node_id]
             shared["results"][node_id] = exec_res
 
-        print(f"DEBUG: Updated shared['results'] with {self.name}")
+        print(f"DEBUG: Updated shared['results'] with {self.name} (moved to end)")
         # Return None to use "default" edge
         return None
 

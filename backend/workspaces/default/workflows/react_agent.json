@@ -47,7 +47,8 @@
                 "y": 500
             },
             "data": {
-                "query": "{query}"
+                "query": "{query}",
+                "tavily_api_key": "<YOUR_TAVILY_API_KEY>"
             }
         },
         {

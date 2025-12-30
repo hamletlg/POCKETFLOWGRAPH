@@ -47,15 +47,19 @@ class IfElseNode(BasePlatformNode, Node):
 
     def exec(self, prep_res):
         cfg = getattr(self, "config", {})
-        condition = cfg.get("condition", "True")
+        condition = cfg.get("condition", "True") or "True"
 
         # Build evaluation context
         context = {"input": prep_res.get("input", "")}
 
-        # Replace {input} placeholder with actual value for simple conditions
+        # Substitute variable references {{var}}
         eval_condition = condition
-        for key, val in context.items():
-            eval_condition = eval_condition.replace(f"{{{key}}}", repr(val))
+        # 1. Handle {{input}} or {input}
+        eval_condition = eval_condition.replace("{{input}}", repr(context["input"]))
+        eval_condition = eval_condition.replace("{input}", repr(context["input"]))
+        
+        # 2. Add other memory context if possible?
+        # For now keep it simple as defined in plan.
 
         try:
             result = eval(eval_condition, {"__builtins__": {}}, context)
@@ -127,21 +131,35 @@ class LoopNode(BasePlatformNode, Node):
 
         # Initialize or get loop state
         if loop_key not in shared:
-            items_str = cfg.get("items", "[]")
-            try:
-                # Try parsing as JSON array
-                items = json.loads(items_str)
-                if isinstance(items, int):
-                    items = list(range(items))
-                elif not isinstance(items, list):
-                    items = [items]
-            except:
-                # Try as integer count
+            items_input = cfg.get("items", "[]")
+            items = []
+            
+            # Support direct memory reference: {{variable_name}}
+            if isinstance(items_input, str) and items_input.startswith("{{") and items_input.endswith("}}"):
+                var_name = items_input[2:-2].strip()
+                items = shared.get("memory", {}).get(var_name, [])
+                if not isinstance(items, list):
+                    # If it's a number, convert to range
+                    if isinstance(items, int):
+                        items = list(range(items))
+                    else:
+                        items = [items]
+            else:
+                # Standard parsing (JSON or int)
                 try:
-                    count = int(items_str)
-                    items = list(range(count))
+                    # Try parsing as JSON array
+                    items = json.loads(items_input)
+                    if isinstance(items, int):
+                        items = list(range(items))
+                    elif not isinstance(items, list):
+                        items = [items]
                 except:
-                    items = []
+                    # Try as integer count
+                    try:
+                        count = int(items_input)
+                        items = list(range(count))
+                    except:
+                        items = []
 
             shared[loop_key] = {
                 "items": items,
@@ -224,7 +242,8 @@ class WhileNode(BasePlatformNode, Node):
 
     def exec(self, prep_res):
         cfg = getattr(self, "config", {})
-        condition = cfg.get("condition", "False")
+        # DEFAULT TO TRUE: If empty, it loops until max_iterations
+        condition = cfg.get("condition", "").strip() or "True"
         max_iter = int(cfg.get("max_iterations", 100))
         context = prep_res["context"]
 
@@ -234,6 +253,7 @@ class WhileNode(BasePlatformNode, Node):
 
         # Evaluate condition
         try:
+            # Special handling for empty condition which is now "True"
             result = eval(condition, {"__builtins__": {}}, context)
             return {"continue": bool(result), "reason": "condition"}
         except Exception as e:
