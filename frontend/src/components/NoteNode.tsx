@@ -13,9 +13,7 @@ const NoteNode = ({ data, selected }: NodeProps) => {
             />
             <div
                 className={`h-full w-full p-4 rounded-sm shadow-md bg-yellow-100 border border-yellow-200 flex flex-col font-serif ${selected ? 'ring-2 ring-yellow-400' : ''}`}
-                style={{
-                    backgroundImage: 'linear-gradient(#f9f9f9 0.1em, transparent 0.1em)',
-                    backgroundSize: '100% 1.2em',
+                style={{                    
                     backgroundColor: '#fef3c7'
                 }}
             >
