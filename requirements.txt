@@ -11,3 +11,5 @@ schedule
 pocketflow
 chromadb
 pydantic-settings
+
+tavily-python

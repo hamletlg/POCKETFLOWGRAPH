@@ -4,25 +4,35 @@ import requests
 from bs4 import BeautifulSoup
 
 try:
-    from duckduckgo_search import DDGS
+    from tavily import TavilyClient
 except ImportError:
-    DDGS = None
+    TavilyClient = None
 
 
 class WebSearchNode(BasePlatformNode, Node):
-    """Search the web with variable substitution and structured output."""
+    """Search the web using Tavily with variable substitution and structured output."""
 
     NODE_TYPE = "web_search"
-    DESCRIPTION = "Search web using DuckDuckGo (supports {input}, {memory_key})"
+    DESCRIPTION = "Search web using Tavily (supports {input}, {memory_key})"
     PARAMS = {
         "query": {
             "type": "string",
             "description": "Search query (supports {input}, {memory_key})",
         },
+        "api_key": {
+            "type": "string",
+            "description": "Tavily API Key (optional if TAVILY_API_KEY env var is set)",
+        },
         "max_results": {
             "type": "int",
-            "default": 10,
+            "default": 5,
             "description": "Maximum number of results to return",
+        },
+        "search_depth": {
+             "type": "string",
+             "enum": ["basic", "advanced"],
+             "default": "basic",
+             "description": "Search depth: 'basic' or 'advanced'",
         },
         "as_list": {
             "type": "boolean",
@@ -46,14 +56,18 @@ class WebSearchNode(BasePlatformNode, Node):
 
         return {
             "query": cfg.get("query", ""),
+            "api_key": cfg.get("api_key", ""),
             "max_results": int(cfg.get("max_results", 5) or 5),
+            "search_depth": cfg.get("search_depth", "basic"),
             "as_list": cfg.get("as_list", False),
             "context": context,
         }
 
     def exec(self, prep_res):
         query = prep_res["query"]
+        api_key = prep_res["api_key"] or None  # Allow None to pick up env var
         max_results = prep_res["max_results"]
+        search_depth = prep_res["search_depth"]
         as_list = prep_res["as_list"]
         context = prep_res["context"]
 
@@ -68,11 +82,35 @@ class WebSearchNode(BasePlatformNode, Node):
         if not query:
             return {"error": "No query provided", "results": []}
 
-        if DDGS is None:
-            return {"error": "duckduckgo-search not installed", "results": []}
+        if TavilyClient is None:
+             return {"error": "tavily-python not installed", "results": []}
 
         try:
-            raw_results = DDGS().text(query, max_results=max_results)
+            # Initialize client; let it try to find env var if api_key is None/Empty
+            # Note: TavilyClient might raise error if no key found even with env var mechanism, 
+            # depending on version, but usually it checks environment.
+            # To be safe, we can check os.environ or just pass it if we have it.
+            # If prep_res["api_key"] is "", we should pass None or let library handle it.
+            # Best practice: if not provided in config, use None so library looks for TAVILY_API_KEY.
+            
+            # The library usually expects api_key arg.
+            import os
+            if not api_key:
+                api_key = os.environ.get("TAVILY_API_KEY")
+            
+            if not api_key:
+                 return {"error": "Missing Tavily API Key", "results": []}
+
+            client = TavilyClient(api_key=api_key)
+            
+            response = client.search(
+                query=query,
+                search_depth=search_depth,
+                max_results=max_results
+            )
+            
+            # Tavily returns a dict with 'results' list
+            raw_results = response.get("results", [])
 
             # Structure results
             results = []
@@ -80,8 +118,8 @@ class WebSearchNode(BasePlatformNode, Node):
                 results.append(
                     {
                         "title": r.get("title", ""),
-                        "url": r.get("href", ""),
-                        "snippet": r.get("body", ""),
+                        "url": r.get("url", ""),
+                        "snippet": r.get("content", ""),
                     }
                 )
 
