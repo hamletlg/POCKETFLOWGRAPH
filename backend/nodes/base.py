@@ -124,6 +124,7 @@ class BasePlatformNode:
 
     def post(self, shared, prep_res, exec_res):
         print(f"DEBUG: Executing post for {getattr(self, 'name', 'Unknown')}")
+        print(f"DEBUG BasePlatformNode.post: exec_res type={type(exec_res)}")
         if "results" not in shared:
             shared["results"] = {}
         

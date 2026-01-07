@@ -211,22 +211,28 @@ class LLMNode(BasePlatformNode, Node):
 
     def post(self, shared, prep_res, exec_res):
         """Store result and update chat history if enabled."""
+        print(f"DEBUG LLMNode.post: exec_res keys={list(exec_res.keys())}")
         response = exec_res.get("response", "")
+        print(f"DEBUG LLMNode.post: response length={len(response)}")
         
         # Update chat history if enabled
         if self.use_history and exec_res.get("success"):
-            user_msg = exec_res.get("user_message", "")
-            # Note: We currently only save text in history for simplicity
-            # To support full multimodal history, we'd need to store the structured list.
-            # providing text-only representation for now.
-            self._save_history(
-                self.conversation_id,
-                user_msg,
-                response,
-                self.max_history
-            )
+            try:
+                user_msg = exec_res.get("user_message", "")
+                # Note: We currently only save text in history for simplicity
+                # To support full multimodal history, we'd need to store the structured list.
+                # providing text-only representation for now.
+                self._save_history(
+                    self.conversation_id,
+                    user_msg,
+                    response,
+                    self.max_history
+                )
+            except Exception as e:
+                print(f"LLMNode.post Warning: Failed to save history: {e}")
         
         # Store response for downstream nodes
+        print(f"DEBUG LLMNode.post: calling super().post with response type {type(response)}")
         super().post(shared, prep_res, response)
         return None
 
