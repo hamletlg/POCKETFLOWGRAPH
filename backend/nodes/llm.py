@@ -109,6 +109,10 @@ class LLMNode(BasePlatformNode, Node):
         
         print(f"DEBUG LLMNode: final_content='{user_content[:100]}...'")
         
+        # Get callback for event broadcasting
+        callback = getattr(self, "on_event", None)
+        node_id = getattr(self, "id", "unknown")
+        
         try:
             client = openai.OpenAI(base_url=self.api_base, api_key=self.api_key, timeout=self.time_out)
             
@@ -151,13 +155,46 @@ class LLMNode(BasePlatformNode, Node):
             
             print(f"Sending request to {self.api_base} with model {self.model} ({len(messages)} messages)")
             
+            # Broadcast llm_call event
+            if callback:
+                try:
+                    # Truncate prompt preview for display
+                    prompt_preview = user_content[:500] + ("..." if len(user_content) > 500 else "")
+                    callback("llm_call", {
+                        "node_id": node_id,
+                        "model": self.model,
+                        "prompt_preview": prompt_preview,
+                        "message_count": len(messages)
+                    })
+                except Exception as e:
+                    print(f"llm_call callback error: {e}")
+            
+            import time
+            start_time = time.time()
+            
             response = client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=self.temperature
             )
+            
+            duration_ms = int((time.time() - start_time) * 1000)
             content = response.choices[0].message.content
             print(f"LLMNode response: {content[:100]}...")
+            
+            # Broadcast llm_response event
+            if callback:
+                try:
+                    # Truncate response for display
+                    response_preview = content[:1000] + ("..." if len(content) > 1000 else "")
+                    callback("llm_response", {
+                        "node_id": node_id,
+                        "model": self.model,
+                        "response": response_preview,
+                        "duration_ms": duration_ms
+                    })
+                except Exception as e:
+                    print(f"llm_response callback error: {e}")
             
             return {
                 "response": content,

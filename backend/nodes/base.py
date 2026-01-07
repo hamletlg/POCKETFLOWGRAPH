@@ -83,6 +83,13 @@ class BasePlatformNode:
                 try:
                     print(f"DEBUG: Calling callback for node_end: {node_id}")
                     callback("node_end", {"node_id": node_id})
+                    
+                    # Broadcast state_update after each node completes
+                    callback("state_update", {
+                        "memory": shared.get("memory", {}),
+                        "results": shared.get("results", {}),
+                        "node_id": node_id
+                    })
                 except Exception as e:
                     print(f"Callback error: {e}")
 

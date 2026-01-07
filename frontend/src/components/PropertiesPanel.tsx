@@ -96,7 +96,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                         let enumOptions: string[] | undefined;
                         let defaultValue: any;
                         let description: string | undefined;
-                        
+
                         if (typeof paramDefRaw === 'string') {
                             // Old format - simple string
                             paramType = paramDefRaw;
@@ -107,12 +107,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                             defaultValue = paramDefRaw.default;
                             description = paramDefRaw.description;
                         }
-                        
+
                         // Determine input type
                         const isBoolean = paramType === 'boolean';
                         const isEnum = enumOptions && enumOptions.length > 0;
                         const isMultiLine = key.includes('prompt') || key.includes('content') || key.includes('query') || key.includes('script_body');
-                        
+
                         // Get current value or default
                         let currentValue = params[key];
                         if (currentValue === undefined && defaultValue !== undefined) {
@@ -124,15 +124,15 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                                 <label className="block text-xs font-medium text-gray-600 mb-1 capitalize">
                                     {key.replace(/_/g, ' ')}
                                 </label>
-                                
+
                                 {isBoolean ? (
                                     <input
                                         type="checkbox"
                                         checked={currentValue === 'true' || currentValue === true}
-                                        onChange={(e) => handleChange(key, e.target.checked)}
+                                        onChange={(e) => handleChange(key, String(e.target.checked))}
                                         className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                                     />
-                                ) : isEnum ? (
+                                ) : isEnum && enumOptions ? (
                                     <select
                                         value={currentValue || defaultValue || ''}
                                         onChange={(e) => handleChange(key, e.target.value)}
@@ -160,7 +160,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ selectedNode, 
                                         placeholder={`Enter ${key}`}
                                     />
                                 )}
-                                
+
                                 {/* Show parameter description or type */}
                                 {description ? (
                                     <p className="text-[10px] text-gray-500 text-right mt-0.5">{description}</p>

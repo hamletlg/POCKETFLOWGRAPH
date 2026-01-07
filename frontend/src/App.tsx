@@ -1,15 +1,20 @@
 import { useEffect, useState } from 'react';
 import './index.css';
 import { GraphEditor } from './components/GraphEditor';
+import { ExecutionView } from './components/ExecutionView';
 import { fetchNodes } from './api/client';
 import type { NodeMetadata } from './api/client';
 
 import { ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 
+type ViewMode = 'editor' | 'execution';
+
 function App() {
   const [nodes, setNodes] = useState<NodeMetadata[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<ViewMode>('editor');
+  const [currentWorkflowName, setCurrentWorkflowName] = useState<string | null>(null);
 
   useEffect(() => {
     const loadNodes = async () => {
@@ -31,9 +36,22 @@ function App() {
 
   return (
     <div className="h-screen w-screen bg-white">
-      <ReactFlowProvider>
-        <GraphEditor availableNodes={nodes} />
-      </ReactFlowProvider>
+      {currentView === 'editor' ? (
+        <ReactFlowProvider>
+          <GraphEditor
+            availableNodes={nodes}
+            onSwitchToExecution={(workflowName) => {
+              setCurrentWorkflowName(workflowName);
+              setCurrentView('execution');
+            }}
+          />
+        </ReactFlowProvider>
+      ) : (
+        <ExecutionView
+          onSwitchToEditor={() => setCurrentView('editor')}
+          currentWorkflowName={currentWorkflowName}
+        />
+      )}
     </div>
   );
 }

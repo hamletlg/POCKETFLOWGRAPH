@@ -22,6 +22,7 @@ import { fetchWorkspaces, fetchActiveWorkspace, setActiveWorkspace } from '../ap
 
 interface GraphEditorProps {
     availableNodes: NodeMetadata[];
+    onSwitchToExecution?: (workflowName: string | null) => void;
 }
 
 const initialNodes: Node[] = [
@@ -43,7 +44,8 @@ export const GraphEditor: React.FC<GraphEditorProps> = (props) => {
     return <GraphEditorContent {...props} />;
 };
 
-const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
+
+const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes, onSwitchToExecution }) => {
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const [nodes, setNodes, onNodesChangeFromHook] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -667,6 +669,14 @@ const GraphEditorContent: React.FC<GraphEditorProps> = ({ availableNodes }) => {
                 <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
                     {/* Floating Toolbar (Right) */}
                     <div className="absolute top-4 right-4 z-10 flex gap-2">
+                        {onSwitchToExecution && (
+                            <button
+                                onClick={() => onSwitchToExecution(currentWorkflowName)}
+                                className="bg-purple-600 text-white px-4 py-2 rounded shadow hover:bg-purple-700 transition flex items-center gap-1"
+                            >
+                                ▶ Execution View
+                            </button>
+                        )}
                         <button
                             onClick={handleExportClick}
                             className="bg-gray-600 text-white px-4 py-2 rounded shadow hover:bg-gray-700 transition"
