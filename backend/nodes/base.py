@@ -146,6 +146,41 @@ class BasePlatformNode:
             shared["results"][node_id] = exec_res
 
         print(f"DEBUG: Updated shared['results'] with {self.name} (moved to end)")
+        
+        # Broadcast node_end and state_update
+        # Run() is bypassed by PocketFlow engine, so we must do it here
+        callback = getattr(self, "on_event", None)
+        if callback:
+            try:
+                # Node End
+                callback("node_end", {"node_id": node_id, "node_name": name})
+                
+                # State Update
+                # Safely serialize results to handle non-JSON-serializable objects
+                def safe_serialize(obj):
+                    if isinstance(obj, dict):
+                        return {k: safe_serialize(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [safe_serialize(item) for item in obj]
+                    elif isinstance(obj, (str, int, float, bool, type(None))):
+                        return obj
+                    else:
+                        return str(obj)
+                
+                serialized_results = safe_serialize(shared.get("results", {}))
+                serialized_memory = safe_serialize(shared.get("memory", {}))
+                
+                print(f"DEBUG: Broadcasting state_update from post(). Results keys: {list(serialized_results.keys())}")
+                callback("state_update", {
+                    "memory": serialized_memory,
+                    "results": serialized_results,
+                    "node_id": node_id
+                })
+            except Exception as e:
+                print(f"Callback error in post: {e}")
+                import traceback
+                traceback.print_exc()
+
         # Return None to use "default" edge
         return None
 
