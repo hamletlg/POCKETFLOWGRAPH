@@ -82,16 +82,36 @@ class BasePlatformNode:
             if callback:
                 try:
                     print(f"DEBUG: Calling callback for node_end: {node_id}")
-                    callback("node_end", {"node_id": node_id})
+                    callback("node_end", {"node_id": node_id, "node_name": getattr(self, "name", node_id)})
                     
                     # Broadcast state_update after each node completes
+                    # Safely serialize results to handle non-JSON-serializable objects
+                    def safe_serialize(obj):
+                        if isinstance(obj, dict):
+                            return {k: safe_serialize(v) for k, v in obj.items()}
+                        elif isinstance(obj, list):
+                            return [safe_serialize(item) for item in obj]
+                        elif isinstance(obj, (str, int, float, bool, type(None))):
+                            return obj
+                        else:
+                            return str(obj)
+                    
+                    raw_results = shared.get("results", {})
+                    print(f"DEBUG: Broadcasting state_update. Raw results keys: {list(raw_results.keys())}")
+                    serialized_results = safe_serialize(raw_results)
+                    serialized_memory = safe_serialize(shared.get("memory", {}))
+                    
+                    print(f"DEBUG: Serialized results: {serialized_results}")
+                    
                     callback("state_update", {
-                        "memory": shared.get("memory", {}),
-                        "results": shared.get("results", {}),
+                        "memory": serialized_memory,
+                        "results": serialized_results,
                         "node_id": node_id
                     })
                 except Exception as e:
                     print(f"Callback error: {e}")
+                    import traceback
+                    traceback.print_exc()
 
             return res
         except Exception as e:

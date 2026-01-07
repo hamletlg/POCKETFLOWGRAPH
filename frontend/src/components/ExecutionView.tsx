@@ -192,6 +192,36 @@ const MessageInspector: React.FC<{
             );
         }
 
+        // State update - show results nicely
+        if (event.type === 'state_update' && event.payload?.results) {
+            const results = event.payload.results;
+            return (
+                <div className="space-y-4">
+                    <div>
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Node Results Updated</h4>
+                        <div className="space-y-2">
+                            {Object.entries(results).map(([key, value]) => (
+                                <div key={key} className="bg-gray-50 p-3 rounded-lg border">
+                                    <div className="text-xs font-semibold text-blue-600 mb-1">{key}</div>
+                                    <pre className="text-sm whitespace-pre-wrap overflow-auto max-h-48">
+                                        {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                    </pre>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {event.payload?.memory && Object.keys(event.payload.memory).length > 0 && (
+                        <div>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Memory</h4>
+                            <pre className="bg-gray-50 p-3 rounded-lg border text-xs overflow-auto max-h-48">
+                                {JSON.stringify(event.payload.memory, null, 2)}
+                            </pre>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         // Default: show raw payload
         return (
             <div>
@@ -235,6 +265,7 @@ const StatePanel: React.FC<{
     sharedMemory: Record<string, any>;
     results: Record<string, any>;
 }> = ({ sharedMemory, results }) => {
+    console.log("StatePanel render:", { resultKeys: Object.keys(results), memoryKeys: Object.keys(sharedMemory) });
 
     const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
         memory: true,
@@ -424,7 +455,7 @@ export const ExecutionView: React.FC<ExecutionViewProps> = ({ onSwitchToEditor, 
                 </div>
 
                 {/* Right Panel: State */}
-                <div className="w-80 flex-shrink-0">
+                <div className="w-80 flex-shrink-0 h-full border-l bg-gray-50">
                     <StatePanel sharedMemory={sharedMemory} results={results} />
                 </div>
             </div>

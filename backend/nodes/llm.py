@@ -185,12 +185,12 @@ class LLMNode(BasePlatformNode, Node):
             # Broadcast llm_response event
             if callback:
                 try:
-                    # Truncate response for display
-                    response_preview = content[:1000] + ("..." if len(content) > 1000 else "")
+                    # Send full response (frontend can handle display)
                     callback("llm_response", {
                         "node_id": node_id,
+                        "node_name": getattr(self, "name", node_id),
                         "model": self.model,
-                        "response": response_preview,
+                        "response": content,  # Full response
                         "duration_ms": duration_ms
                     })
                 except Exception as e:
