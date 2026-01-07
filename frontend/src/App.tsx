@@ -36,7 +36,8 @@ function App() {
 
   return (
     <div className="h-screen w-screen bg-white">
-      {currentView === 'editor' ? (
+      {/* Keep both views mounted to preserve state, use CSS to show/hide */}
+      <div className={currentView === 'editor' ? 'h-full w-full' : 'hidden'}>
         <ReactFlowProvider>
           <GraphEditor
             availableNodes={nodes}
@@ -46,12 +47,13 @@ function App() {
             }}
           />
         </ReactFlowProvider>
-      ) : (
+      </div>
+      <div className={currentView === 'execution' ? 'h-full w-full' : 'hidden'}>
         <ExecutionView
           onSwitchToEditor={() => setCurrentView('editor')}
           currentWorkflowName={currentWorkflowName}
         />
-      )}
+      </div>
     </div>
   );
 }

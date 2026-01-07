@@ -321,6 +321,16 @@ export const ExecutionView: React.FC<ExecutionViewProps> = ({ onSwitchToEditor, 
         ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
+                console.log("ExecutionView received:", msg.type, msg.payload);
+
+                // Handle workflow_start first - clear previous events
+                if (msg.type === 'workflow_start') {
+                    setIsRunning(true);
+                    setEvents([]); // Clear previous events before adding new ones
+                    setSharedMemory({});
+                    setResults({});
+                }
+
                 const newEvent: ExecutionEvent = {
                     id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     type: msg.type,
@@ -332,11 +342,8 @@ export const ExecutionView: React.FC<ExecutionViewProps> = ({ onSwitchToEditor, 
 
                 setEvents(prev => [...prev, newEvent]);
 
-                // Handle specific event types
-                if (msg.type === 'workflow_start') {
-                    setIsRunning(true);
-                    setEvents([]); // Clear previous events on new run
-                } else if (msg.type === 'workflow_end' || msg.type === 'workflow_error') {
+                // Handle other specific event types
+                if (msg.type === 'workflow_end' || msg.type === 'workflow_error') {
                     setIsRunning(false);
                     // Update state from final results if available
                     if (msg.payload?.results) {
