@@ -15,7 +15,7 @@ dist/
 .idea/
 
 # PocketFlow specific
-# backend/workflows/*.json 
+backend/workflows/*.json 
 
 # Logs
 *.log
